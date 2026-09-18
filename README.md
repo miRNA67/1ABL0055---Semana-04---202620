@@ -18,7 +18,7 @@ Al finalizar la sesión, el estudiante realiza el basecalling de los archivos PO
 ## Flujo de trabajo:
 
 ```mermaid
-flowchart LR
+flowchart RL
     subgraph ILL["Illumina (CAT_R1 / CAT_R2)"]
         direction LR
         A1["FASTQ crudos"] --> A2["FastQC + MultiQC"]
