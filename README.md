@@ -65,7 +65,7 @@ Dorado v0.9.1 https://github.com/nanoporetech/dorado
 FastQC v0.12.1 http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
    - **Descripción:** FastQC es una herramienta de control de calidad para datos de secuenciación de alto rendimiento. Proporciona un informe detallado que ayuda a identificar posibles problemas en los datos brutos antes del análisis posterior.
 
-Kraken2 https://github.com/DerrickWood/kraken2
+Kraken2 v2.1.3 https://github.com/DerrickWood/kraken2
    - **Descripción:** Kraken2 es un clasificador taxonómico de secuencias basado en k-mers: compara cada lectura con una base de datos de genomas de referencia y le asigna un taxón. Aquí se usa para detectar contaminación en los FASTQ de Nanopore, con la base de datos PlusPF (arqueas, bacterias, virus, plásmidos, humano, protozoos y hongos). Verifique la versión instalada con `kraken2 --version`.
 
 Minimap2 v2.28 https://github.com/lh3/minimap2
