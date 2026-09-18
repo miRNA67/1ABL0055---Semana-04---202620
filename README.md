@@ -17,6 +17,8 @@ Al finalizar la sesión, el estudiante realiza el basecalling de los archivos PO
 
 ## Flujo de trabajo:
 
+### Illumina:
+
 ```mermaid
 flowchart LR
     subgraph ILL["Illumina (CAT_R1 / CAT_R2)"]
@@ -25,8 +27,13 @@ flowchart LR
         A2 --> A3["Trim Galore"]
         A2 --> A4["Trimmomatic"]
         A3 --> A5["FastQC + MultiQC + seqkit stats"]
-
+        A4 --> A5
     end
+```
+### Nanopore:
+
+```mermaid
+flowchart LR
     subgraph NAN["Nanopore (barcode asignado)"]
         direction LR
         B1["POD5"] --> B2["Dorado (sup)"]
