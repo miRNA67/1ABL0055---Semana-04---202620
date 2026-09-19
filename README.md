@@ -40,10 +40,9 @@ flowchart LR
         B2 --> B3["BAM a FASTQ"]
         B3 --> B4["NanoPlot (calidad cruda)"]
         B4 --> B5["Porechop"]
-        B5 --> B6["minimap2 + YACRD"]
-        B6 --> B7["NanoFilt"]
-        B7 --> B8["seqkit stats"]
-        B7 --> B9["Kraken2 (contaminación)"]
+        B5 --> B6["NanoFilt"]
+        B6 --> B7["seqkit stats"]
+        B7 --> B8["Kraken2 (contaminación)"]
     end
 ```
 
@@ -68,9 +67,6 @@ FastQC v0.12.1 http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 Kraken2 v2.1.3 https://github.com/DerrickWood/kraken2
    - **Descripción:** Kraken2 es un clasificador taxonómico de secuencias basado en k-mers: compara cada lectura con una base de datos de genomas de referencia y le asigna un taxón. Aquí se usa para detectar contaminación en los FASTQ de Nanopore, con la base de datos PlusPF (arqueas, bacterias, virus, plásmidos, humano, protozoos y hongos).
 
-Minimap2 v2.28 https://github.com/lh3/minimap2
-   - **Descripción:** Minimap2 es un alineador de secuencias versátil y de alta velocidad diseñado para lecturas largas (Nanopore y PacBio). En esta práctica se usa para calcular los solapamientos entre lecturas (all-vs-all) que necesita YACRD.
-
 MultiQC v1.28.0 https://multiqc.info
    - **Descripción:** MultiQC es una herramienta que agrega informes de control de calidad de múltiples herramientas de análisis bioinformático en un único informe HTML interactivo. Es compatible con una amplia gama de herramientas, incluyendo FastQC, Cutadapt/Trim Galore! y Trimmomatic, facilitando la revisión y comparación de los resultados de control de calidad de múltiples muestras.
 
@@ -80,31 +76,17 @@ NanoFilt v2.8.0 https://github.com/wdecoster/nanofilt
 NanoPlot v1.41.6 https://github.com/wdecoster/NanoPlot
    - **Descripción:** NanoPlot es una herramienta para la visualización de datos de secuenciación de Nanopore. Genera varios tipos de gráficos para evaluar la calidad y las características de los reads, como la distribución de longitudes y la calidad a lo largo de los reads.
 
-PycoQC v2.5.2 https://github.com/a-slide/pycoQC *(opcional: no se utiliza en esta práctica)*
-   - **Descripción:** PycoQC es una herramienta para el control de calidad de datos de secuenciación de Oxford Nanopore, similar a FastQC pero diseñada específicamente para este tipo de datos. Genera informes interactivos en HTML con diversas métricas de calidad.
-
 Porechop v0.2.4 https://github.com/rrwick/Porechop
    - **Descripción:** Porechop es una herramienta para identificar y recortar adaptadores en los extremos de los reads de Oxford Nanopore. Cuando detecta un adaptador en el interior de un read, lo considera quimérico y lo divide en reads separados. *Nota: su autor lo declaró oficialmente sin mantenimiento en 2018; se usa aquí con fines didácticos para comparar con el recorte que ya realiza Dorado.*
+
+SeqKit v2.13.0 https://bioinf.shenwei.me/seqkit/
+   - **Descripción:** Kit de herramientas para manipular y resumir archivos FASTA/FASTQ. Aquí se usa para calcular estadísticas de los FASTQ (`stats`) y, antes de Kraken2, para renombrar las lecturas (`rename`).
 
 TrimGalore v0.6.10 https://github.com/FelixKrueger/TrimGalore
    - **Descripción:** Trim Galore! es un wrapper alrededor de Cutadapt y FastQC para realizar el recorte de adaptadores y el control de calidad en datos de secuenciación de alto rendimiento. Automatiza el proceso de recorte y genera informes de calidad.
 
 Trimmomatic v0.39 http://www.usadellab.org/cms/?page=trimmomatic
    - **Descripción:** Trimmomatic es una herramienta flexible y rápida para realizar el recorte de adaptadores y el filtrado de calidad en datos de secuenciación de Illumina. Permite eliminar secuencias de adaptadores, bases de baja calidad y reads demasiado cortos.
-
-YACRD v0.6.2 https://github.com/natir/yacrd
-   - **Descripción:** YACRD (Yet Another Chimeric Read Detector) es una herramienta especializada en la detección de lecturas quiméricas y regiones sin cobertura en datos de secuenciación de lecturas largas. Permite "limpiar" (scrubb) o dividir las lecturas donde se detectan uniones accidentales, mejorando significativamente la contigüidad y precisión de los ensamblajes genómicos posteriores.
-
-### Herramientas auxiliares (ya instaladas en el servidor):
-
-SAMtools https://www.htslib.org
-   - **Descripción:** Conjunto de utilidades para manipular archivos SAM/BAM. Aquí se usa para ordenar los BAM generados por Dorado.
-
-BEDTools https://bedtools.readthedocs.io
-   - **Descripción:** Conjunto de utilidades para manipular archivos genómicos. Aquí se usa `bamtofastq` para convertir BAM a FASTQ.
-
-SeqKit https://bioinf.shenwei.me/seqkit/
-   - **Descripción:** Kit de herramientas para manipular y resumir archivos FASTA/FASTQ. Aquí se usa para calcular estadísticas de los FASTQ (`stats`) y, antes de Kraken2, para renombrar las lecturas (`rename`).
 
 ## Metodología:
 
@@ -295,12 +277,11 @@ dorado basecaller sup --kit-name SQK-NBD114-24 --min-qscore 10 --device "cuda:0"
 > - `sup`: Esta opción indica que se debe utilizar el modelo de basecalling de "super precisión" (super accuracy). Estos modelos están entrenados para ofrecer una mayor exactitud en la llamada de bases, a costa de un mayor tiempo de cómputo. Dorado elige automáticamente el modelo `sup` que corresponde a los datos.
 > - `--kit-name SQK-NBD114-24`: Este parámetro especifica el nombre del kit de preparación de librería utilizado (Native Barcoding Kit 24 V14). Activa la **clasificación de barcodes** y le indica a Dorado qué adaptadores y barcodes buscar; por defecto Dorado también recorta los adaptadores, primers y barcodes que detecta (esto se desactiva con `--no-trim`). **No** sirve para elegir el modelo de basecalling.
 > - `--min-qscore 10`: Esta opción establece un umbral de calidad mínima **para cada lectura completa**: Dorado descarta las lecturas cuyo Q-score **medio** sea menor que 10. No filtra bases individuales. El Q-score es una medida de la probabilidad de que una base llamada sea incorrecta: un Q-score de 10 significa una probabilidad de error de 1 en 10 (10%); Q20, 1 en 100 (1%); Q30, 1 en 1000 (0,1%).
-> - `--device 'cuda:0'`: Esto indica que Dorado debe utilizar la primera GPU habilitada para CUDA (índice 0) disponible en tu sistema para acelerar el proceso de basecalling. El uso de la GPU puede reducir significativamente el tiempo de procesamiento.
+> - `--device "cuda:0"`: Esto indica que Dorado debe utilizar la primera GPU habilitada para CUDA (índice 0) disponible en tu sistema para acelerar el proceso de basecalling. El uso de la GPU puede reducir significativamente el tiempo de procesamiento.
 > - `--barcode-both-ends`: Esta opción le dice a Dorado que exija códigos de barras (barcodes) en ambos extremos de la lectura. Es útil si tu protocolo de secuenciación incluyó barcodes en ambos extremos, pero es más estricto: una lectura con barcode en un solo extremo no se clasifica.
 > - `--models-directory /data/software/dorado-0.9.1-linux-x64/models`: Este parámetro especifica el directorio donde Dorado busca modelos ya descargados (o donde descargaría los que falten). Es importante que la ruta sea correcta para que Dorado pueda cargar los modelos necesarios.
-> - `/data/2025_1/database/nanopore/pod5/barcode15.pod5`: Esta es la ruta al archivo de entrada POD5 que contiene los datos de señal sin procesar para una muestra con el código de barras (barcode) número 15. Dorado realizará el basecalling de los datos contenidos en este archivo.
-> - `> b15_calls.bam`: Esto redirige la salida estándar (stdout) del comando Dorado al archivo llamado b15_calls.bam. Como no se indicó un genoma de referencia (`--reference`), Dorado genera un archivo BAM **sin alinear** (uBAM) con las secuencias base-llamadas y sus etiquetas (por ejemplo, la clasificación de barcode).
-> - `\` al final de cada línea: permite escribir un comando largo en varias líneas; no debe haber espacios después de la barra.
+> - `/data/2025_1/database/nanopore/pod5/`: Esta es la ruta de la carpeta de entrada con los archivos POD5 que contienen los datos de señal sin procesar de la corrida (de todos los barcodes). Dorado realizará el basecalling de todos los archivos de la carpeta.
+> - `> wasp_calls.bam`: Esto redirige la salida estándar (stdout) del comando Dorado al archivo llamado wasp_calls.bam. Como no se indicó un genoma de referencia (`--reference`), Dorado genera un archivo BAM **sin alinear** (uBAM) con las secuencias base-llamadas y sus etiquetas (por ejemplo, la clasificación de barcode).
 
 #### Conversión de bam a fastq
 
@@ -311,7 +292,11 @@ seqkit stats -a -j 10 demux_fastq/*.fastq > stats_fastq.txt
 ```
 
 > **Comentario:** 
-> - `seqkit stats`: Calcula las estadísticas de archivos FASTQ que han sido previamente ordenados (-a: todas las estadísticas y -j: número de hilos).
+> - `dorado demux`: separa las lecturas del BAM según la clasificación de barcode que Dorado les asignó durante el basecalling.
+> - `--output-dir demux_fastq`: carpeta donde se guarda un archivo por barcode (y uno `unclassified` con las lecturas sin barcode).
+> - `--emit-fastq`: escribe los archivos en formato FASTQ (por defecto Dorado escribe BAM).
+> - `wasp_calls.bam`: BAM sin alinear generado en el paso anterior, con las lecturas de todos los barcodes.
+> - `seqkit stats`: calcula las estadísticas de los FASTQ separados por barcode (-a: todas las estadísticas y -j: número de hilos).
 >
 
 ```bash
@@ -395,7 +380,7 @@ Top 5 longest reads and their mean basecall quality score
 
 > **Comentario:** 
 > - `-t 10`: Número de hilos que usará NanoPlot.
-> - `--fastq ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz`: Indica la ruta del archivo FASTQ que contiene las lecturas de secuenciación de ONT que se van a analizar.
+> - `--fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz`: Indica la ruta del archivo FASTQ que contiene las lecturas de secuenciación de ONT que se van a analizar.
 > - `-p b14_sup_raw_`: Define el prefijo que se usará para los nombres de los archivos de salida. En este caso, todos los gráficos generados comenzarán con "b14_sup_raw_".
 > - `-o b14_sup_raw`: Especifica el directorio de salida donde se guardarán los gráficos. Si el directorio no existe, NanoPlot lo creará.
 > - `--maxlength 1000000`: Oculta las lecturas más largas que este valor (1 Mb). Esas lecturas **se excluyen** de los gráficos y de las estadísticas (no se truncan). Sirve para que unas pocas lecturas extremadamente largas no distorsionen la visualización.
@@ -406,7 +391,7 @@ Top 5 longest reads and their mean basecall quality score
 > - **Mean read quality** vs **Median read quality**: promedio y mediana de la calidad media de cada lectura.
 > - **>Q10, >Q15, >Q20...**: número, porcentaje y megabases de lecturas cuya calidad media supera ese umbral (es un conteo de *lecturas*, no de bases).
 
-> **Puntos de control:** Descargue `b14_sup_raw/b14_sup_raw_NanoPlot-report.html` con WinSCP y responda: (1) ¿Qué porcentaje de lecturas supera Q20? (2) ¿Es simétrica la distribución de longitudes? ¿Qué indican la media y la mediana? (3) ¿Por qué el Q30(%) de `seqkit stats` (80,11 %) es mucho mayor que el porcentaje de lecturas >Q30 de NanoPlot (2,0 %)?
+> **Puntos de control:** Descargue `b14_sup_raw/b14_sup_raw_NanoPlot-report.html` con WinSCP y responda: (1) ¿Qué porcentaje de lecturas supera Q20? (2) ¿Es simétrica la distribución de longitudes? ¿Qué indican la media y la mediana? (3) ¿Por qué el Q30(%) de `seqkit stats` (80,68 %) es mucho mayor que el porcentaje de lecturas >Q30 de NanoPlot (5,3 %)?
 
 ## 6. Limpieza de los archivos FASTQ de Nanopore
 
@@ -426,43 +411,14 @@ cat b14_porechop.log
 > - `-o b14_sup_porechop.fastq.gz`: Esta opción especifica el nombre del archivo FASTQ de salida comprimido con gzip. Este archivo contendrá las lecturas después de que Porechop haya recortado los adaptadores de los extremos y dividido las lecturas que tenían un adaptador en su interior (quimeras). Los fragmentos resultantes menores a 1000 pb se descartan por defecto.
 > - `> b14_porechop.log 2> b14_porechop.err`: Guarda el resumen del proceso y los posibles errores en archivos separados. `tail` permite ver el resumen: cuántas lecturas tenían adaptadores recortados y cuántas fueron divididas.
 
-### Eliminación de quimeras
-
-```bash
-cd ~/genomics/trimming/nanopore
-
-minimap2 -x ava-ont -g 500 -t 10 b14_sup_porechop.fastq.gz b14_sup_porechop.fastq.gz > b14_overlap.paf
-
-yacrd -i b14_overlap.paf -o b14_report.yacrd -c 4 -n 0.4 scrubb -i b14_sup_porechop.fastq.gz -o b14_sup_yacrd.fastq.gz
-
-awk '{print $1}' b14_report.yacrd | sort | uniq -c
-```
-
-> **Comentario:** 
-> - `minimap2 -x ava-ont`: Utiliza el algoritmo Minimap2 con el preajuste (preset) para solapamientos de lecturas largas de Nanopore.
-> - `-g 500`: Establece la distancia máxima para el llenado de brechas (gaps) entre semillas en 500 bases. Es una configuración recomendada por los autores de YACRD para datos de Nanopore.
-> - `-t 10`: Indica que el servidor utilizará 10 hilos (CPUs) para procesar el alineamiento de forma paralela y rápida.
-> - `b14_sup_porechop.fastq.gz b14_sup_porechop.fastq.gz`: Realiza un mapeo de tipo "all-vs-all", comparando cada lectura contra todas las demás de la misma muestra para encontrar solapamientos consistentes.
-> - `> b14_overlap.paf`: Redirige los resultados al archivo "b14_overlap.paf" en formato PAF (Pairwise Alignment Format).
-> - `yacrd -i b14_overlap.paf`: Carga el archivo de solapamientos generado anteriormente como entrada para el detector de quimeras.
-> - `-o b14_report.yacrd`: Crea un archivo de reporte con la clasificación de cada lectura (Chimeric, NotCovered o NotBad).
-> - `-c 4`: Define el umbral de cobertura mínima. Las regiones de una lectura con cobertura menor o igual a 4 lecturas de soporte se consideran "regiones malas".
-> - `-n 0.4`: Si más del 40% de la longitud de una lectura está formada por regiones malas, la lectura se marca como `NotCovered` y se elimina.
-> - `scrubb`: Modo de operación que limpia la secuencia. En lugar de borrar la lectura completa si es quimérica, yacrd la corta en los puntos de unión falsos y conserva las partes reales.
-> - `-i b14_sup_porechop.fastq.gz`: Indica el archivo FASTQ original que contiene las secuencias físicas que serán procesadas y cortadas.
-> - `-o b14_sup_yacrd.fastq.gz`: Genera el archivo comprimido con las lecturas sin quimeras, que se filtrará por calidad y longitud en el paso siguiente.
-> - `awk '{print $1}' b15_report.yacrd | sort | uniq -c`: Cuenta cuántas lecturas fueron clasificadas como `Chimeric`, `NotCovered` o `NotBad`.
-
-> **Importante:** Los autores de YACRD recomiendan `-c 4 -n 0.4` para conjuntos de datos con cobertura mayor a **30x**. Si la cobertura es baja (por ejemplo, pocos megabases de datos frente al tamaño del genoma de la muestra), casi todas las regiones tendrán cobertura ≤ 4 y `scrubb` eliminará o fragmentará una gran parte de las lecturas. Revise el conteo del comando `awk` y el número de lecturas resultantes antes de continuar.
-
 ### Eliminación de lecturas considerando su calidad y longitud
 
 ```bash
-gunzip -c ~/genomics/trimming/nanopore/b14_sup_yacrd.fastq.gz | NanoFilt -q 10 --length 1000 | gzip > b14_sup_nanofilt.fastq.gz
+gunzip -c ~/genomics/trimming/nanopore/b14_sup_porechop.fastq.gz | NanoFilt -q 10 --length 1000 | gzip > b14_sup_nanofilt.fastq.gz
 ```
 
 > **Comentario:**
-> - `gunzip -c ~/genomics/trimming/nanopore/b14_sup_yacrd.fastq.gz`: Descomprime el archivo "b14_sup_yacrd.fastq.gz".
+> - `gunzip -c ~/genomics/trimming/nanopore/b14_sup_porechop.fastq.gz`: Descomprime el archivo "b14_sup_porechop.fastq.gz".
 > - `NanoFilt -q 10 --length 1000`: Filtra las lecturas descomprimidas utilizando NanoFilt, manteniendo solo aquellas que tengan un puntaje de calidad medio mínimo de 10 y una longitud mínima de 1000 bases. Recuerde que Dorado ya descartó las lecturas con Q medio menor a 10 (`--min-qscore 10`), por lo que en este dato el filtro de calidad casi no elimina lecturas: el efecto principal es el de la longitud.
 > - `gzip > b14_sup_nanofilt.fastq.gz`: Comprime las lecturas filtradas y las guarda en un nuevo archivo llamado "b14_sup_nanofilt.fastq.gz". Este es el **FASTQ final de la limpieza**, listo para ser utilizado en el ensamblaje de genomas.
 > - `|`: Este símbolo es una "tubería" (pipe) que conecta la salida de un comando a la entrada de otro.
@@ -472,21 +428,19 @@ gunzip -c ~/genomics/trimming/nanopore/b14_sup_yacrd.fastq.gz | NanoFilt -q 10 -
 ```bash
 cd ~/genomics/trimming/nanopore
 
-seqkit stats -a -T -j 10 ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz b14_sup_porechop.fastq.gz b14_sup_yacrd.fastq.gz b14_sup_nanofilt.fastq.gz > b14_stats_fastq.tsv
+seqkit stats -a -T -j 10 ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz b14_sup_porechop.fastq.gz b14_sup_nanofilt.fastq.gz > b14_stats_fastq.tsv
 
 cat b14_stats_fastq.tsv
 
 file    format  type    num_seqs        sum_len min_len avg_len max_len Q1      Q2      Q3      sum_gap N50     N50_num Q20(%)  Q30(%)  AvgQual GC(%)   sum_n
 /home/alumno01/genomics/basecalling/pod5_db_sup/b14.fastq.gz    FASTQ   DNA     2789    2835518 13      1016.7  20783   428.0   682.0   1145.0  0       1381    461     89.65   80.68   19.59     45.73   0
 b14_sup_porechop.fastq.gz       FASTQ   DNA     2785    2832515 13      1017.1  20783   428.0   682.0   1145.0  0       1381    460     89.67   80.70   19.61   45.74   0
-b14_sup_yacrd.fastq.gz      FASTQ   DNA     1021    687351  13      673.2   6830    327.0   531.0   815.0   0       838     222     89.95   81.00   19.96   46.15   0
 b14_sup_nanofilt.fastq.gz       FASTQ   DNA     177     286274  1000    1617.4  6830    1124.0  1323.0  1767.0  0       1563    56      90.62   81.81   20.14   45.77   0
 ```
 
 > **Comentario:**
 > - `seqkit stats -a -T`: calcula todas las estadísticas y las entrega en formato tabular (TSV). Se incluyen, **en orden**, el FASTQ crudo y el resultado de cada etapa de limpieza.
 > - `column -t -s $'\t' ... | less -S`: muestra la tabla alineada; use las flechas para desplazarse y `q` para salir.
-> - `awk ...`: toma como referencia la primera fila (FASTQ crudo) y calcula, para cada etapa, el porcentaje de lecturas y de bases perdidas respecto al crudo. Si una etapa **divide** lecturas (como Porechop o YACRD), el número de lecturas puede aumentar y el porcentaje de pérdida saldrá negativo; por eso también se compara el número de bases.
 
 ## 7. Análisis de contaminación con Kraken2
 
@@ -521,6 +475,7 @@ cat b14.report
 
 ## 8. Análisis de calidad, limpieza y contaminación de los datos de secuenciación Nanopore generados en el curso
 
+> - La bitácora se centra **únicamente en los datos de Nanopore** (secciones 4 a 7). Los análisis de Illumina (secciones 2 y 3) forman parte de la práctica, pero no se incluyen en la bitácora.
 > - Realizar todo el proceso de basecalling, visualización de calidad, limpieza y análisis de contaminación del FASTQ de su respectivo barcode (secciones 4 a 7), cambiando `b14` por el código de su barcode en los nombres de archivos.
 > - Localización de los archivos FASTQ:
 
@@ -541,12 +496,28 @@ tree /data/2026_2/genomics/
     ├── illumina/
     │   ├── trim_galore/
     │   └── trimmomatic/
-    └── nanopore/         # Resultados de Porechop, YACRD, NanoFilt y Kraken2
+    └── nanopore/         # Resultados de Porechop, NanoFilt y Kraken2
 ```
+
+### Bitácora bioinformática:
+
+Debe incluir las siguientes secciones (solo con los datos de **Nanopore**):
+
+1. **Carátula** (usar la carátula del modelo de bitácora, con los 6 integrantes del grupo)
+2. **Título**
+3. **Objetivo de la práctica**
+4. **Metodología:** flujograma de los análisis realizados con los datos de Nanopore (basecalling, análisis de calidad, limpieza y contaminación)
+5. **Metodología:** estructura de las carpetas
+6. **Metodología:** versión de cada programa utilizado (`programa --version`), modelo de Dorado y base de datos de Kraken2 empleados
+7. **Resultados:** análisis de calidad de los datos crudos de Nanopore
+8. **Resultados:** estadísticas de los FASTQ en cada etapa de la limpieza (tabla generada con `seqkit stats`)
+9. **Resultados:** número total y porcentaje (%) de lecturas y de bases que se perdieron en el proceso de limpieza (archivo `b14_perdidas.txt`, adaptado a su barcode)
+10. **Resultados:** análisis de contaminación con Kraken2 (porcentaje de lecturas clasificadas y no clasificadas, tabla con los 10 taxones con más lecturas e interpretación)
+11. **Discusión:** responder las preguntas siguientes.
 
 ### Preguntas para la discusión:
 
 1. ¿Qué importancia tiene la limpieza de lecturas de Nanopore para los análisis posteriores (por ejemplo, el ensamblaje de genomas)?
 2. ¿Qué etapa de la limpieza eliminó más lecturas y más bases? ¿Es una pérdida esperable? Justifique con sus datos.
 3. Si aumentara el umbral de calidad de NanoFilt a `-q 12` o `-q 15`, o el de longitud a `--length 2000`, ¿cómo cambiaría el número de lecturas y de bases? Explique el compromiso entre calidad y cantidad de datos.
-4. ¿Qué organismos identificó Kraken2 en su FASTQ? ¿Que organismo seria el que corresponde a tu muestra? ¿Qué implican el porcentaje de lecturas no clasificadas y la presencia de posibles contaminantes para un ensamblaje posterior?
+4. ¿Qué organismos identificó Kraken2 en su FASTQ? ¿Qué organismo sería el que corresponde a su muestra? ¿Qué implican el porcentaje de lecturas no clasificadas y la presencia de posibles contaminantes para un ensamblaje posterior?
