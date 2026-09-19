@@ -622,6 +622,11 @@ cd ~/genomics/contamination
 conda activate shotgun
 
 kraken2 -db /data/db/kraken2/k2_pluspf/ --threads 30 --use-names ~/genomics/trimming/nanopore/b14_sup_nanofilt.fastq.gz --output b14.kraken --report b14.report
+
+Loading database information... done.
+852 sequences (1.80 Mbp) processed in 0.389s (131.6 Kseq/m, 278.71 Mbp/m).
+  852 sequences classified (100.00%)
+  0 sequences unclassified (0.00%)
 ```
 
 > **Comentario:**
@@ -640,124 +645,66 @@ kraken2 -db /data/db/kraken2/k2_pluspf/ --threads 30 --use-names ~/genomics/trim
 ```bash
 cat b14.report
 
-  0.22  93      93      U       0       unclassified
- 99.78  43051   3       R       1       root
- 99.64  42988   2       R1      131567    cellular organisms
- 99.60  42971   13      D       2           Bacteria
- 95.54  41220   3       D1      1783272       Terrabacteria group
- 95.47  41190   2       P       1239            Bacillota
- 95.46  41185   14      C       91061             Bacilli
- 94.60  40814   23      O       186826              Lactobacillales
- 90.34  38975   12      F       1300                  Streptococcaceae
- 80.46  34715   574     G       1357                    Lactococcus
- 64.74  27932   8223    S       1358                      Lactococcus lactis
- 45.68  19709   14777   S1      1360                        Lactococcus lactis subsp. lactis
-  3.69  1594    1594    S2      1046624                       Lactococcus lactis subsp. lactis IO-1
-  3.60  1554    1554    S2      44688                         Lactococcus lactis subsp. lactis bv. diacetylactis
-  1.28  552     552     S2      1117941                       Lactococcus lactis subsp. lactis NCDO 2118
-  1.23  532     532     S2      684738                        Lactococcus lactis subsp. lactis KF147
-  0.82  353     353     S2      272623                        Lactococcus lactis subsp. lactis Il1403
-  0.45  192     192     S2      889971                        Lactococcus lactis subsp. lactis K214
-  0.36  155     155     S2      929102                        Lactococcus lactis subsp. lactis CV56
-  9.01  3889    0       G1      2643510                   unclassified Lactococcus
-  8.95  3862    3862    S       44273                       Lactococcus sp.
-  0.05  20      20      S       2879149                     Lactococcus sp. NH2-7C
-  0.01  6       6       S       3037457                     Lactococcus sp. bn62
-  0.00  1       1       S       2816912                     Lactococcus sp. LG606
-  3.20  1381    1071    S       1359                      Lactococcus cremoris
-  0.72  310     2       S1      2816960                     Lactococcus cremoris subsp. cremoris
-  0.37  158     158     S2      1449093                       Lactococcus cremoris subsp. cremoris IBB477
-  0.24  102     102     S2      1104322                       Lactococcus cremoris subsp. cremoris A76
-  0.06  26      26      S2      1295826                       Lactococcus cremoris subsp. cremoris KW2
-  0.02  10      10      S2      272622                        Lactococcus cremoris subsp. cremoris SK11
-  0.02  10      10      S2      1111678                       Lactococcus cremoris subsp. cremoris UC509.9
-  0.00  2       2       S2      416870                        Lactococcus cremoris subsp. cremoris MG1363
-  1.30  561     559     S       1363                      Lactococcus garvieae
-  0.00  2       2       S1      1890280                     Lactococcus garvieae subsp. garvieae
-  0.32  139     139     S       1940789                   Lactococcus petauri
-  0.26  114     0       S       1364                      Lactococcus piscium
-  0.26  114     114     S1      297352                      Lactococcus piscium MKFS47
-  0.15  63      1       S       1281486                   Lactococcus formosensis
-  0.14  62      62      S1      2906461                     Lactococcus formosensis subsp. formosensis
-  0.10  42      42      S       1366                      Lactococcus raffinolactis
-  0.04  16      16      S       1151742                   Lactococcus taiwanensis
-  0.00  2       2       S       2592653                   Lactococcus protaetiae
-  0.00  1       1       S       2419773                   Lactococcus allomyrinae
-  0.00  1       1       S       2749962                   Lactococcus paracarnosus
-  9.85  4248    16      G       1301                    Streptococcus
-  8.98  3875    3104    S       1308                      Streptococcus thermophilus
-  0.33  144     144     S1      1435974                     Streptococcus thermophilus TH982
-  0.31  132     132     S1      1433288                     Streptococcus thermophilus MTH17CL396
-  0.22  94      94      S1      1433289                     Streptococcus thermophilus M17PTZA496
-  0.15  66      66      S1      1435981                     Streptococcus thermophilus 1F8CT
-  0.15  63      63      S1      1435972                     Streptococcus thermophilus TH985
-  0.14  62      62      S1      1423145                     Streptococcus thermophilus TH1436
-  0.10  44      44      S1      1051074                     Streptococcus thermophilus JIM 8232
-  0.10  41      41      S1      1436725                     Streptococcus thermophilus TH1477
-  0.09  37      37      S1      264199                      Streptococcus thermophilus LMG 18311
-  0.09  37      37      S1      1408178                     Streptococcus thermophilus ASCC 1275
-  0.05  23      23      S1      322159                      Streptococcus thermophilus LMD-9
-  0.03  11      11      S1      299768                      Streptococcus thermophilus CNRZ1066
-  0.02  10      10      S1      767463                      Streptococcus thermophilus ND03
-  0.01  5       5       S1      1415776                     Streptococcus thermophilus TH1435
-  0.00  2       2       S1      1187956                     Streptococcus thermophilus MN-ZLW-002
-  0.42  182     182     S       1501662                   Streptococcus parasuis
-  0.15  66      4       S       1348                      Streptococcus parauberis
-  0.14  62      62      S1      873447                      Streptococcus parauberis NCFD 2020
-  0.09  37      37      S       59310                     Streptococcus macedonicus
-  0.04  17      17      S       82348                     Streptococcus pluranimalium
-  0.03  13      11      S       315405                    Streptococcus gallolyticus
-  0.00  2       0       S1      53354                       Streptococcus gallolyticus subsp. gallolyticus
-  0.00  2       2       S2      990317                        Streptococcus gallolyticus subsp. gallolyticus ATCC BAA-2069
-  0.02  8       8       S       113107                    Streptococcus australis
-  0.01  6       6       S       1307                      Streptococcus suis
-  0.01  4       4       S       1311                      Streptococcus agalactiae
-  0.01  4       4       S       102684                    Streptococcus infantarius
-  0.00  2       2       S       1314                      Streptococcus pyogenes
-  0.00  2       0       S       45634                     Streptococcus cristatus
-  0.00  2       2       S1      1302863                     Streptococcus cristatus AS 1.3089
-  0.00  2       2       S       1335                      Streptococcus equinus
-  0.00  2       0       G1      119603                    Streptococcus dysgalactiae group
-  0.00  2       0       S       1334                        Streptococcus dysgalactiae
-  0.00  2       2       S1      99822                         Streptococcus dysgalactiae subsp. dysgalactiae
-  0.00  2       1       S       197614                    Streptococcus pasteurianus
-  0.00  1       1       S1      981540                      Streptococcus pasteurianus ATCC 43144
-  0.00  2       2       S       1304                      Streptococcus salivarius
-  0.00  2       2       S       684066                    Streptococcus lactarius
-  0.00  1       1       S       102886                    Streptococcus didelphis
-  0.00  1       1       S       1349                      Streptococcus uberis
-  0.00  1       1       S       149016                    Streptococcus urinalis
-  0.00  1       0       S       1309                      Streptococcus mutans
-  0.00  1       1       S1      511691                      Streptococcus mutans NN2025
-  0.00  1       1       S       1310                      Streptococcus sobrinus
-  0.00  1       1       S       1329                      Streptococcus canis
-  2.53  1093    3       F       33958                 Lactobacillaceae
-  1.85  798     3       G       1243                    Leuconostoc
-  1.56  674     406     S       1245                      Leuconostoc mesenteroides
-  0.48  207     203     S1      33967                       Leuconostoc mesenteroides subsp. mesenteroides
-  0.01  4       4       S2      203120                        Leuconostoc mesenteroides subsp. mesenteroides ATCC 8293
-  0.13  55      55      S1      2026657                     Leuconostoc mesenteroides subsp. jonggajibkimchii
-  0.01  3       3       S1      33966                       Leuconostoc mesenteroides subsp. dextranicum
-  0.01  3       3       S1      427140                      Leuconostoc mesenteroides KFRI-MG
-  0.07  32      32      S       33968                     Leuconostoc pseudomesenteroides
-  0.07  31      31      S       2766470                   Leuconostoc falkenbergense
-  0.04  17      9       S       33964                     Leuconostoc citreum
-  0.02  8       8       S1      349519                      Leuconostoc citreum KM20
-  0.03  14      10      S       1252                      Leuconostoc carnosum
-  0.01  4       4       S1      1229758                     Leuconostoc carnosum JB16
-  0.03  13      13      S       1511761                   Leuconostoc suionicum
-  0.01  5       0       G1      3016637                   Leuconostoc gelidum group
-  0.01  5       3       S       115778                      Leuconostoc gasicomitatum
-  0.00  1       1       S1      762550                        Leuconostoc gasicomitatum LMG 18811
-  0.00  1       1       S1      1165892                       Leuconostoc gasicomitatum KG16-1
-  0.01  4       4       S       1246                      Leuconostoc lactis
-  0.01  3       0       S       136609                    Leuconostoc kimchii
-  0.01  3       3       S1      762051                      Leuconostoc kimchii IMSNU 11154
-  0.00  2       0       G1      2685106                   unclassified Leuconostoc
-  0.00  2       2       S       2698683                     Leuconostoc sp. MTCC 10508
+100.00  852     0       R       1       root
+100.00  852     0       R1      131567    cellular organisms
+100.00  852     0       D       2           Bacteria
+ 99.88  851     0       D1      1783272       Terrabacteria group
+ 99.88  851     0       P       1239            Bacillota
+ 99.88  851     0       C       91061             Bacilli
+ 99.88  851     0       O       1385                Bacillales
+ 99.88  851     1       F       186817                Bacillaceae
+ 99.77  850     90      G       1386                    Bacillus
+ 79.58  678     1       G1      653685                    Bacillus subtilis group
+ 77.23  658     79      G2      1938374                     Bacillus amyloliquefaciens group
+ 58.45  498     483     S       492670                        Bacillus velezensis
+  0.70  6       6       S1      1449088                         Bacillus velezensis TrigoCor1448
+  0.35  3       3       S1      1225788                         Bacillus velezensis AS43.3
+  0.35  3       3       S1      1338518                         Bacillus velezensis UCMB5033
+  0.23  2       2       S1      1423138                         Bacillus velezensis SQR9
+  0.12  1       1       S1      1385727                         Bacillus velezensis NAU-B3
+  8.69  74      73      S       1390                          Bacillus amyloliquefaciens
+  0.12  1       1       S1      1434324                         Bacillus amyloliquefaciens UMAF6614
+  0.82  7       7       S       659243                        Bacillus siamensis
+  1.17  10      9       S       1423                        Bacillus subtilis
+  0.12  1       1       S1      135461                        Bacillus subtilis subsp. subtilis
+  0.35  3       3       S       1452                        Bacillus atrophaeus
+  0.35  3       0       G2      653388                      Bacillus mojavensis subgroup
+  0.35  3       3       S       260554                        Bacillus halotolerans
+  0.23  2       2       S       72361                       Bacillus vallismortis
+  0.12  1       1       S       227866                      Bacillus tequilensis
+  7.63  65      0       G1      185979                    unclassified Bacillus (in: firmicutes)
+  5.87  50      50      S       2821409                     Bacillus sp. LJBV19
+  0.35  3       3       S       2867004                     Bacillus sp. FCW2
+  0.23  2       2       S       2975302                     Bacillus sp. FSL R5-0443
+  0.23  2       2       S       2912260                     Bacillus sp. R45
+  0.23  2       2       S       563169                      Bacillus sp. SJ-10
+  0.12  1       1       S       2842457                     Bacillus sp. JNUCC-22
+  0.12  1       1       S       2587848                     Bacillus sp. THAF10
+  0.12  1       1       S       3117553                     Bacillus sp. MT(2024)
+  0.12  1       1       S       2975294                     Bacillus sp. FSL K6-2861
+  0.12  1       1       S       2665175                     Bacillus sp. AM1(2019)
+  0.12  1       1       S       3139388                     Bacillus sp. YBsi01
+  0.94  8       8       S       1408                      Bacillus pumilus
+  0.82  7       0       G1      86661                     Bacillus cereus group
+  0.35  3       3       S       1396                        Bacillus cereus
+  0.23  2       1       S       1428                        Bacillus thuringiensis
+  0.12  1       1       S1      257985                        Bacillus thuringiensis serovar andalousiensis
+  0.12  1       1       S       1890302                     Bacillus wiedmannii
+  0.12  1       1       S       1405                        Bacillus mycoides
+  0.12  1       1       S       1455                      Bacillus badius
+  0.12  1       1       S       324767                    Bacillus infantis
+  0.12  1       0       P       1224          Pseudomonadota
+  0.12  1       0       C       1236            Gammaproteobacteria
+  0.12  1       0       O       72274             Pseudomonadales
+  0.12  1       0       F       135621              Pseudomonadaceae
+  0.12  1       0       G       286                   Pseudomonas
+  0.12  1       0       G1      136841                  Pseudomonas aeruginosa group
+  0.12  1       0       G2      1232139                   Pseudomonas oleovorans/pseudoalcaligenes group
+  0.12  1       0       S       301                         Pseudomonas oleovorans
+  0.12  1       1       S1      1182590                       Pseudomonas oleovorans CECT 5344
 ```
 
-> **Punto de control:** Responda con sus datos: (1) ¿Qué porcentaje de lecturas fue clasificado y cuál quedó sin clasificar? (2) ¿El taxón con más lecturas corresponde al organismo esperado de la muestra? (3) ¿Qué otros taxones aparecen (por ejemplo, humano u otras bacterias) y con qué porcentaje? Tenga en cuenta que una lectura **no clasificada no es necesariamente un contaminante**: puede pertenecer a un organismo que no está en la base de datos, y la exactitud de las lecturas de Nanopore puede reducir la fracción que Kraken2 logra clasificar.
+> **Punto de control:** Responda con sus datos: (1) ¿Qué porcentaje de lecturas fue clasificado y cuál quedó sin clasificar? (2) ¿A que especie corresponde la muestra? (3) ¿Qué otros taxones aparecen (por ejemplo, humano u otras bacterias) y con qué porcentaje? Tenga en cuenta que una lectura **no clasificada no es necesariamente un contaminante**: puede pertenecer a un organismo que no está en la base de datos, y la exactitud de las lecturas de Nanopore puede reducir la fracción que Kraken2 logra clasificar.
 
 ## 8. Análisis de calidad, limpieza y contaminación de los datos de secuenciación Nanopore generados en el curso
 
