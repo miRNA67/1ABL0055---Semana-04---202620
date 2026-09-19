@@ -375,7 +375,7 @@ NanoPlot -t 10 --fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz -p b14_su
 > - **Mean read quality** vs **Median read quality**: promedio y mediana de la calidad media de cada lectura.
 > - **>Q10, >Q15, >Q20...**: número, porcentaje y megabases de lecturas cuya calidad media supera ese umbral (es un conteo de *lecturas*, no de bases).
 
-``bash
+```bash
 cat b14_sup_raw/b14_sup_raw_NanoStats.txt
 
 General summary:         
