@@ -160,7 +160,22 @@ multiqc -o raw_illumina .
 ```bash
 cd ~/genomics/trimming/illumina/trim_galore
 
-trim_galore --quality 30 --length 50 --phred33 --cores 2 --fastqc --paired --output_dir . /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz 2> trim_galore_CAT.log
+trim_galore --quality 30 --length 50 --phred33 --cores 2 --fastqc --paired --output_dir . /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz
+```
+
+```bash
+AUTO-DETECTING ADAPTER TYPE
+===========================
+Attempting to auto-detect adapter type from the first 1 million sequences of the first file (>> /data/2025_1/database/illumina/CAT_R1.fastq.gz <<)
+
+Found perfect matches for the following adapter sequences:
+Adapter type    Count   Sequence        Sequences analysed      Percentage
+Nextera 466837  CTGTCTCTTATA    1000000 46.68
+smallRNA        8       TGGAATTCTCGG    1000000 0.00
+Illumina        0       AGATCGGAAGAGC   1000000 0.00
+Using Nextera adapter for trimming (count: 466837). Second best hit was smallRNA (count: 8)
+
+Writing report to '/home/alumno01/genomics/trimming/illumina/trim_galore/CAT_R1.fastq.gz_trimming_report.txt'
 ```
 
 > **Comentario:**
@@ -272,8 +287,7 @@ dorado basecaller sup --kit-name SQK-NBD114-24 --min-qscore 10 --device "cuda:0"
 ```
 
 > **Comentario:** 
-> Al iniciar, Dorado imprime el nombre del modelo que está usando (por ejemplo, `dna_r10.4.1_e8.2_400bps_sup@v5.0.0`). **Anótelo**: debe reportarse en la metodología de la bitácora.
->
+> Al iniciar, Dorado imprime el nombre del modelo que está usando (por ejemplo, `dna_r10.4.1_e8.2_400bps_sup@v5.0.0`).
 > - `sup`: Esta opción indica que se debe utilizar el modelo de basecalling de "super precisión" (super accuracy). Estos modelos están entrenados para ofrecer una mayor exactitud en la llamada de bases, a costa de un mayor tiempo de cómputo. Dorado elige automáticamente el modelo `sup` que corresponde a los datos.
 > - `--kit-name SQK-NBD114-24`: Este parámetro especifica el nombre del kit de preparación de librería utilizado (Native Barcoding Kit 24 V14). Activa la **clasificación de barcodes** y le indica a Dorado qué adaptadores y barcodes buscar; por defecto Dorado también recorta los adaptadores, primers y barcodes que detecta (esto se desactiva con `--no-trim`). **No** sirve para elegir el modelo de basecalling.
 > - `--min-qscore 10`: Esta opción establece un umbral de calidad mínima **para cada lectura completa**: Dorado descarta las lecturas cuyo Q-score **medio** sea menor que 10. No filtra bases individuales. El Q-score es una medida de la probabilidad de que una base llamada sea incorrecta: un Q-score de 10 significa una probabilidad de error de 1 en 10 (10%); Q20, 1 en 100 (1%); Q30, 1 en 1000 (0,1%).
@@ -286,7 +300,7 @@ dorado basecaller sup --kit-name SQK-NBD114-24 --min-qscore 10 --device "cuda:0"
 #### Conversión de bam a fastq
 
 ```bash
-dorado demux --output-dir demux_fastq --emit-fastq wasp_calls.bam
+dorado demux --kit-name SQK-NBD114-24 --output-dir demux_fastq --emit-fastq wasp_calls.bam
 
 seqkit stats -a -j 10 demux_fastq/*.fastq > stats_fastq.txt
 ```
@@ -346,7 +360,22 @@ ls -lh
 cd ~/genomics/quality/nanopore
 
 NanoPlot -t 10 --fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz -p b14_sup_raw_ -o b14_sup_raw --maxlength 1000000 --only-report
+```
 
+> **Comentario:** 
+> - `-t 10`: Número de hilos que usará NanoPlot.
+> - `--fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz`: Indica la ruta del archivo FASTQ que contiene las lecturas de secuenciación de ONT que se van a analizar.
+> - `-p b14_sup_raw_`: Define el prefijo que se usará para los nombres de los archivos de salida. En este caso, todos los gráficos generados comenzarán con "b14_sup_raw_".
+> - `-o b14_sup_raw`: Especifica el directorio de salida donde se guardarán los gráficos. Si el directorio no existe, NanoPlot lo creará.
+> - `--maxlength 1000000`: Oculta las lecturas más largas que este valor (1 Mb). Esas lecturas **se excluyen** de los gráficos y de las estadísticas (no se truncan). Sirve para que unas pocas lecturas extremadamente largas no distorsionen la visualización.
+> - `--only-report`: Reduce los archivos de salida; el resumen queda en el reporte HTML y en el archivo `NanoStats.txt`.
+
+> **Cómo leer el resumen:**
+> - **N50**: longitud tal que las lecturas de esa longitud o mayores suman la mitad de las bases totales. Es mayor que la mediana porque da más peso a las lecturas largas.
+> - **Mean read quality** vs **Median read quality**: promedio y mediana de la calidad media de cada lectura.
+> - **>Q10, >Q15, >Q20...**: número, porcentaje y megabases de lecturas cuya calidad media supera ese umbral (es un conteo de *lecturas*, no de bases).
+
+``bash
 cat b14_sup_raw/b14_sup_raw_NanoStats.txt
 
 General summary:         
@@ -378,19 +407,6 @@ Top 5 longest reads and their mean basecall quality score
 5:      9918 (16.9)
 ```
 
-> **Comentario:** 
-> - `-t 10`: Número de hilos que usará NanoPlot.
-> - `--fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz`: Indica la ruta del archivo FASTQ que contiene las lecturas de secuenciación de ONT que se van a analizar.
-> - `-p b14_sup_raw_`: Define el prefijo que se usará para los nombres de los archivos de salida. En este caso, todos los gráficos generados comenzarán con "b14_sup_raw_".
-> - `-o b14_sup_raw`: Especifica el directorio de salida donde se guardarán los gráficos. Si el directorio no existe, NanoPlot lo creará.
-> - `--maxlength 1000000`: Oculta las lecturas más largas que este valor (1 Mb). Esas lecturas **se excluyen** de los gráficos y de las estadísticas (no se truncan). Sirve para que unas pocas lecturas extremadamente largas no distorsionen la visualización.
-> - `--only-report`: Reduce los archivos de salida; el resumen queda en el reporte HTML y en el archivo `NanoStats.txt`.
-
-> **Cómo leer el resumen:**
-> - **N50**: longitud tal que las lecturas de esa longitud o mayores suman la mitad de las bases totales. Es mayor que la mediana porque da más peso a las lecturas largas.
-> - **Mean read quality** vs **Median read quality**: promedio y mediana de la calidad media de cada lectura.
-> - **>Q10, >Q15, >Q20...**: número, porcentaje y megabases de lecturas cuya calidad media supera ese umbral (es un conteo de *lecturas*, no de bases).
-
 > **Puntos de control:** Descargue `b14_sup_raw/b14_sup_raw_NanoPlot-report.html` con WinSCP y responda: (1) ¿Qué porcentaje de lecturas supera Q20? (2) ¿Es simétrica la distribución de longitudes? ¿Qué indican la media y la mediana? (3) ¿Por qué el Q30(%) de `seqkit stats` (80,68 %) es mucho mayor que el porcentaje de lecturas >Q30 de NanoPlot (5,3 %)?
 
 ## 6. Limpieza de los archivos FASTQ de Nanopore
@@ -401,8 +417,6 @@ Top 5 longest reads and their mean basecall quality score
 cd ~/genomics/trimming/nanopore
 
 porechop -t 10 -i ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz -o b14_sup_porechop.fastq.gz > b14_porechop.log 2> b14_porechop.err
-
-cat b14_porechop.log
 ```
 
 > **Comentario:**
@@ -410,6 +424,163 @@ cat b14_porechop.log
 > - `-i ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz`: Esta opción indica la ruta del archivo FASTQ de entrada. Este es el archivo que contiene las lecturas de secuenciación de ONT que se van a procesar.
 > - `-o b14_sup_porechop.fastq.gz`: Esta opción especifica el nombre del archivo FASTQ de salida comprimido con gzip. Este archivo contendrá las lecturas después de que Porechop haya recortado los adaptadores de los extremos y dividido las lecturas que tenían un adaptador en su interior (quimeras). Los fragmentos resultantes menores a 1000 pb se descartan por defecto.
 > - `> b14_porechop.log 2> b14_porechop.err`: Guarda el resumen del proceso y los posibles errores en archivos separados. `tail` permite ver el resumen: cuántas lecturas tenían adaptadores recortados y cuántas fueron divididas.
+
+```bash
+cat b14_porechop.log
+
+Loading reads
+/home/alumno01/genomics/basecalling/pod5_db_sup/b14.fastq.gz
+2,789 reads loaded
+
+
+Looking for known adapter sets
+2,789 / 2,789 (100.0%)
+                                        Best               
+                                        read       Best    
+                                        start      read end
+  Set                                   %ID        %ID     
+  SQK-NSK007                                73.3       79.2
+  Rapid                                     68.5        0.0
+  RBK004_upstream                           68.3        0.0
+  SQK-MAP006                                75.9       77.3
+  SQK-MAP006 short                          76.9       75.0
+  PCR adapters 1                            78.3       78.3
+  PCR adapters 2                            79.2       77.3
+  PCR adapters 3                            76.0       76.9
+  1D^2 part 1                               71.4       73.3
+  1D^2 part 2                               72.2       73.3
+  cDNA SSP                                  73.2       70.0
+  Barcode 1 (reverse)                       75.0       76.9
+  Barcode 2 (reverse)                       76.9       79.2
+  Barcode 3 (reverse)                       75.0       73.1
+  Barcode 4 (reverse)                       75.0       76.0
+  Barcode 5 (reverse)                       73.1       74.1
+  Barcode 6 (reverse)                       75.0       76.9
+  Barcode 7 (reverse)                       83.3       75.0
+  Barcode 8 (reverse)                       76.0       77.8
+  Barcode 9 (reverse)                       75.0       74.1
+  Barcode 10 (reverse)                      76.0       76.0
+  Barcode 11 (reverse)                      76.0       76.9
+  Barcode 12 (reverse)                      76.9       84.0
+  Barcode 1 (forward)                       79.2       76.0
+  Barcode 2 (forward)                       76.9       80.0
+  Barcode 3 (forward)                       75.0       75.0
+  Barcode 4 (forward)                       77.8       84.6
+  Barcode 5 (forward)                       77.8       77.8
+  Barcode 6 (forward)                       76.9       76.0
+  Barcode 7 (forward)                       76.0       76.9
+  Barcode 8 (forward)                       76.9       76.9
+  Barcode 9 (forward)                       74.1       75.0
+  Barcode 10 (forward)                      79.2       76.9
+  Barcode 11 (forward)                      76.0       76.0
+  Barcode 12 (forward)                      76.9       80.0
+  Barcode 13 (forward)                      75.0       79.2
+  Barcode 14 (forward)                      92.0      100.0
+  Barcode 15 (forward)                      76.0       73.3
+  Barcode 16 (forward)                      75.0       75.0
+  Barcode 17 (forward)                      76.0       76.9
+  Barcode 18 (forward)                      72.4       76.0
+  Barcode 19 (forward)                      76.0       76.9
+  Barcode 20 (forward)                      75.0       76.0
+  Barcode 21 (forward)                      75.0       76.0
+  Barcode 22 (forward)                      74.1       76.9
+  Barcode 23 (forward)                      76.0       74.1
+  Barcode 24 (forward)                      76.9       80.8
+  Barcode 25 (forward)                      76.9       74.1
+  Barcode 26 (forward)                      79.2       76.0
+  Barcode 27 (forward)                      76.0       75.0
+  Barcode 28 (forward)                      76.9       79.2
+  Barcode 29 (forward)                      74.1       73.1
+  Barcode 30 (forward)                      72.0       75.0
+  Barcode 31 (forward)                      76.9       76.0
+  Barcode 32 (forward)                      76.0       75.0
+  Barcode 33 (forward)                      76.7       72.0
+  Barcode 34 (forward)                      78.6       80.0
+  Barcode 35 (forward)                      76.0       75.0
+  Barcode 36 (forward)                      76.9       76.0
+  Barcode 37 (forward)                      79.2       75.0
+  Barcode 38 (forward)                      75.9       76.0
+  Barcode 39 (forward)                      76.0       75.0
+  Barcode 40 (forward)                      75.0       73.1
+  Barcode 41 (forward)                      76.0       76.0
+  Barcode 42 (forward)                      76.0       75.0
+  Barcode 43 (forward)                      76.0       79.2
+  Barcode 44 (forward)                      76.0       80.8
+  Barcode 45 (forward)                      76.9       76.0
+  Barcode 46 (forward)                      77.8       80.0
+  Barcode 47 (forward)                      75.0       74.1
+  Barcode 48 (forward)                      76.0       76.0
+  Barcode 49 (forward)                      75.0       76.0
+  Barcode 50 (forward)                      75.0       75.0
+  Barcode 51 (forward)                      76.9       75.0
+  Barcode 52 (forward)                      76.0       76.0
+  Barcode 53 (forward)                      80.8       80.0
+  Barcode 54 (forward)                      76.0       75.9
+  Barcode 55 (forward)                      75.0       76.0
+  Barcode 56 (forward)                      76.0       76.0
+  Barcode 57 (forward)                      75.0       76.9
+  Barcode 58 (forward)                      76.0       75.0
+  Barcode 59 (forward)                      79.2       79.2
+  Barcode 60 (forward)                      75.0       72.0
+  Barcode 61 (forward)                      76.0       79.2
+  Barcode 62 (forward)                      75.0       77.8
+  Barcode 63 (forward)                      75.0       76.9
+  Barcode 64 (forward)                      79.2       79.2
+  Barcode 65 (forward)                      75.0       80.0
+  Barcode 66 (forward)                      76.0       75.0
+  Barcode 67 (forward)                      75.0       76.0
+  Barcode 68 (forward)                      72.0       73.1
+  Barcode 69 (forward)                      80.0       76.0
+  Barcode 70 (forward)                      73.1       76.0
+  Barcode 71 (forward)                      74.1       76.0
+  Barcode 72 (forward)                      76.9       81.5
+  Barcode 73 (forward)                      76.9       77.8
+  Barcode 74 (forward)                      74.1       76.0
+  Barcode 75 (forward)                      76.0       80.0
+  Barcode 76 (forward)                      75.0       76.0
+  Barcode 77 (forward)                      76.9       76.0
+  Barcode 78 (forward)                      80.0       76.9
+  Barcode 79 (forward)                      76.0       76.0
+  Barcode 80 (forward)                      75.0       80.0
+  Barcode 81 (forward)                      76.9       76.0
+  Barcode 82 (forward)                      75.0       77.8
+  Barcode 83 (forward)                      76.9       75.0
+  Barcode 84 (forward)                      73.1       73.1
+  Barcode 85 (forward)                      76.9       74.1
+  Barcode 86 (forward)                      73.1       72.0
+  Barcode 87 (forward)                      83.3       73.1
+  Barcode 88 (forward)                      76.9       75.0
+  Barcode 89 (forward)                      75.0       75.0
+  Barcode 90 (forward)                      74.1       75.0
+  Barcode 91 (forward)                      75.0       75.0
+  Barcode 92 (forward)                      76.0       76.9
+  Barcode 93 (forward)                      75.0       79.2
+  Barcode 94 (forward)                      75.0       73.1
+  Barcode 95 (forward)                      80.0       76.9
+  Barcode 96 (forward)                      76.0       75.0
+
+
+Trimming adapters from read ends
+      BC14: AACGAGTCTCTTGGGACCCATAGA
+  BC14_rev: TCTATGGGTCCCAAGAGACTCGTT
+
+2,789 / 2,789 (100.0%)
+
+  152 / 2,789 reads had adapters trimmed from their start (1,733 bp removed)
+  120 / 2,789 reads had adapters trimmed from their end (1,278 bp removed)
+
+
+Splitting reads containing middle adapters
+2,789 / 2,789 (100.0%)
+
+0 / 2,789 reads were split based on middle adapters
+
+
+Saving trimmed reads to file
+pigz found - using it to compress instead of gzip
+
+Saved result to /home/alumno01/genomics/trimming/nanopore/b14_sup_porechop.fastq.gz
+```
 
 ### Eliminación de lecturas considerando su calidad y longitud
 
@@ -426,21 +597,20 @@ gunzip -c ~/genomics/trimming/nanopore/b14_sup_porechop.fastq.gz | NanoFilt -q 1
 ### Estadísticas de cada etapa y porcentaje de lecturas perdidas
 
 ```bash
-cd ~/genomics/trimming/nanopore
-
 seqkit stats -a -T -j 10 ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz b14_sup_porechop.fastq.gz b14_sup_nanofilt.fastq.gz > b14_stats_fastq.tsv
+```
 
+> **Comentario:**
+> - `seqkit stats -a -T`: calcula todas las estadísticas y las entrega en formato tabular (TSV). Se incluyen, **en orden**, el FASTQ crudo y el resultado de cada etapa de limpieza.
+
+```bash
 cat b14_stats_fastq.tsv
 
 file    format  type    num_seqs        sum_len min_len avg_len max_len Q1      Q2      Q3      sum_gap N50     N50_num Q20(%)  Q30(%)  AvgQual GC(%)   sum_n
 /home/alumno01/genomics/basecalling/pod5_db_sup/b14.fastq.gz    FASTQ   DNA     2789    2835518 13      1016.7  20783   428.0   682.0   1145.0  0       1381    461     89.65   80.68   19.59     45.73   0
 b14_sup_porechop.fastq.gz       FASTQ   DNA     2785    2832515 13      1017.1  20783   428.0   682.0   1145.0  0       1381    460     89.67   80.70   19.61   45.74   0
-b14_sup_nanofilt.fastq.gz       FASTQ   DNA     177     286274  1000    1617.4  6830    1124.0  1323.0  1767.0  0       1563    56      90.62   81.81   20.14   45.77   0
+b14_sup_nanofilt.fastq.gz       FASTQ   DNA     852     1804816 1000    2118.3  20783   1210.5  1556.0  2287.0  0       2255    209     89.83   81.04   19.54   45.54   0
 ```
-
-> **Comentario:**
-> - `seqkit stats -a -T`: calcula todas las estadísticas y las entrega en formato tabular (TSV). Se incluyen, **en orden**, el FASTQ crudo y el resultado de cada etapa de limpieza.
-> - `column -t -s $'\t' ... | less -S`: muestra la tabla alineada; use las flechas para desplazarse y `q` para salir.
 
 ## 7. Análisis de contaminación con Kraken2
 
@@ -469,6 +639,122 @@ kraken2 -db /data/db/kraken2/k2_pluspf/ --threads 30 --use-names ~/genomics/trim
 
 ```bash
 cat b14.report
+
+  0.22  93      93      U       0       unclassified
+ 99.78  43051   3       R       1       root
+ 99.64  42988   2       R1      131567    cellular organisms
+ 99.60  42971   13      D       2           Bacteria
+ 95.54  41220   3       D1      1783272       Terrabacteria group
+ 95.47  41190   2       P       1239            Bacillota
+ 95.46  41185   14      C       91061             Bacilli
+ 94.60  40814   23      O       186826              Lactobacillales
+ 90.34  38975   12      F       1300                  Streptococcaceae
+ 80.46  34715   574     G       1357                    Lactococcus
+ 64.74  27932   8223    S       1358                      Lactococcus lactis
+ 45.68  19709   14777   S1      1360                        Lactococcus lactis subsp. lactis
+  3.69  1594    1594    S2      1046624                       Lactococcus lactis subsp. lactis IO-1
+  3.60  1554    1554    S2      44688                         Lactococcus lactis subsp. lactis bv. diacetylactis
+  1.28  552     552     S2      1117941                       Lactococcus lactis subsp. lactis NCDO 2118
+  1.23  532     532     S2      684738                        Lactococcus lactis subsp. lactis KF147
+  0.82  353     353     S2      272623                        Lactococcus lactis subsp. lactis Il1403
+  0.45  192     192     S2      889971                        Lactococcus lactis subsp. lactis K214
+  0.36  155     155     S2      929102                        Lactococcus lactis subsp. lactis CV56
+  9.01  3889    0       G1      2643510                   unclassified Lactococcus
+  8.95  3862    3862    S       44273                       Lactococcus sp.
+  0.05  20      20      S       2879149                     Lactococcus sp. NH2-7C
+  0.01  6       6       S       3037457                     Lactococcus sp. bn62
+  0.00  1       1       S       2816912                     Lactococcus sp. LG606
+  3.20  1381    1071    S       1359                      Lactococcus cremoris
+  0.72  310     2       S1      2816960                     Lactococcus cremoris subsp. cremoris
+  0.37  158     158     S2      1449093                       Lactococcus cremoris subsp. cremoris IBB477
+  0.24  102     102     S2      1104322                       Lactococcus cremoris subsp. cremoris A76
+  0.06  26      26      S2      1295826                       Lactococcus cremoris subsp. cremoris KW2
+  0.02  10      10      S2      272622                        Lactococcus cremoris subsp. cremoris SK11
+  0.02  10      10      S2      1111678                       Lactococcus cremoris subsp. cremoris UC509.9
+  0.00  2       2       S2      416870                        Lactococcus cremoris subsp. cremoris MG1363
+  1.30  561     559     S       1363                      Lactococcus garvieae
+  0.00  2       2       S1      1890280                     Lactococcus garvieae subsp. garvieae
+  0.32  139     139     S       1940789                   Lactococcus petauri
+  0.26  114     0       S       1364                      Lactococcus piscium
+  0.26  114     114     S1      297352                      Lactococcus piscium MKFS47
+  0.15  63      1       S       1281486                   Lactococcus formosensis
+  0.14  62      62      S1      2906461                     Lactococcus formosensis subsp. formosensis
+  0.10  42      42      S       1366                      Lactococcus raffinolactis
+  0.04  16      16      S       1151742                   Lactococcus taiwanensis
+  0.00  2       2       S       2592653                   Lactococcus protaetiae
+  0.00  1       1       S       2419773                   Lactococcus allomyrinae
+  0.00  1       1       S       2749962                   Lactococcus paracarnosus
+  9.85  4248    16      G       1301                    Streptococcus
+  8.98  3875    3104    S       1308                      Streptococcus thermophilus
+  0.33  144     144     S1      1435974                     Streptococcus thermophilus TH982
+  0.31  132     132     S1      1433288                     Streptococcus thermophilus MTH17CL396
+  0.22  94      94      S1      1433289                     Streptococcus thermophilus M17PTZA496
+  0.15  66      66      S1      1435981                     Streptococcus thermophilus 1F8CT
+  0.15  63      63      S1      1435972                     Streptococcus thermophilus TH985
+  0.14  62      62      S1      1423145                     Streptococcus thermophilus TH1436
+  0.10  44      44      S1      1051074                     Streptococcus thermophilus JIM 8232
+  0.10  41      41      S1      1436725                     Streptococcus thermophilus TH1477
+  0.09  37      37      S1      264199                      Streptococcus thermophilus LMG 18311
+  0.09  37      37      S1      1408178                     Streptococcus thermophilus ASCC 1275
+  0.05  23      23      S1      322159                      Streptococcus thermophilus LMD-9
+  0.03  11      11      S1      299768                      Streptococcus thermophilus CNRZ1066
+  0.02  10      10      S1      767463                      Streptococcus thermophilus ND03
+  0.01  5       5       S1      1415776                     Streptococcus thermophilus TH1435
+  0.00  2       2       S1      1187956                     Streptococcus thermophilus MN-ZLW-002
+  0.42  182     182     S       1501662                   Streptococcus parasuis
+  0.15  66      4       S       1348                      Streptococcus parauberis
+  0.14  62      62      S1      873447                      Streptococcus parauberis NCFD 2020
+  0.09  37      37      S       59310                     Streptococcus macedonicus
+  0.04  17      17      S       82348                     Streptococcus pluranimalium
+  0.03  13      11      S       315405                    Streptococcus gallolyticus
+  0.00  2       0       S1      53354                       Streptococcus gallolyticus subsp. gallolyticus
+  0.00  2       2       S2      990317                        Streptococcus gallolyticus subsp. gallolyticus ATCC BAA-2069
+  0.02  8       8       S       113107                    Streptococcus australis
+  0.01  6       6       S       1307                      Streptococcus suis
+  0.01  4       4       S       1311                      Streptococcus agalactiae
+  0.01  4       4       S       102684                    Streptococcus infantarius
+  0.00  2       2       S       1314                      Streptococcus pyogenes
+  0.00  2       0       S       45634                     Streptococcus cristatus
+  0.00  2       2       S1      1302863                     Streptococcus cristatus AS 1.3089
+  0.00  2       2       S       1335                      Streptococcus equinus
+  0.00  2       0       G1      119603                    Streptococcus dysgalactiae group
+  0.00  2       0       S       1334                        Streptococcus dysgalactiae
+  0.00  2       2       S1      99822                         Streptococcus dysgalactiae subsp. dysgalactiae
+  0.00  2       1       S       197614                    Streptococcus pasteurianus
+  0.00  1       1       S1      981540                      Streptococcus pasteurianus ATCC 43144
+  0.00  2       2       S       1304                      Streptococcus salivarius
+  0.00  2       2       S       684066                    Streptococcus lactarius
+  0.00  1       1       S       102886                    Streptococcus didelphis
+  0.00  1       1       S       1349                      Streptococcus uberis
+  0.00  1       1       S       149016                    Streptococcus urinalis
+  0.00  1       0       S       1309                      Streptococcus mutans
+  0.00  1       1       S1      511691                      Streptococcus mutans NN2025
+  0.00  1       1       S       1310                      Streptococcus sobrinus
+  0.00  1       1       S       1329                      Streptococcus canis
+  2.53  1093    3       F       33958                 Lactobacillaceae
+  1.85  798     3       G       1243                    Leuconostoc
+  1.56  674     406     S       1245                      Leuconostoc mesenteroides
+  0.48  207     203     S1      33967                       Leuconostoc mesenteroides subsp. mesenteroides
+  0.01  4       4       S2      203120                        Leuconostoc mesenteroides subsp. mesenteroides ATCC 8293
+  0.13  55      55      S1      2026657                     Leuconostoc mesenteroides subsp. jonggajibkimchii
+  0.01  3       3       S1      33966                       Leuconostoc mesenteroides subsp. dextranicum
+  0.01  3       3       S1      427140                      Leuconostoc mesenteroides KFRI-MG
+  0.07  32      32      S       33968                     Leuconostoc pseudomesenteroides
+  0.07  31      31      S       2766470                   Leuconostoc falkenbergense
+  0.04  17      9       S       33964                     Leuconostoc citreum
+  0.02  8       8       S1      349519                      Leuconostoc citreum KM20
+  0.03  14      10      S       1252                      Leuconostoc carnosum
+  0.01  4       4       S1      1229758                     Leuconostoc carnosum JB16
+  0.03  13      13      S       1511761                   Leuconostoc suionicum
+  0.01  5       0       G1      3016637                   Leuconostoc gelidum group
+  0.01  5       3       S       115778                      Leuconostoc gasicomitatum
+  0.00  1       1       S1      762550                        Leuconostoc gasicomitatum LMG 18811
+  0.00  1       1       S1      1165892                       Leuconostoc gasicomitatum KG16-1
+  0.01  4       4       S       1246                      Leuconostoc lactis
+  0.01  3       0       S       136609                    Leuconostoc kimchii
+  0.01  3       3       S1      762051                      Leuconostoc kimchii IMSNU 11154
+  0.00  2       0       G1      2685106                   unclassified Leuconostoc
+  0.00  2       2       S       2698683                     Leuconostoc sp. MTCC 10508
 ```
 
 > **Punto de control:** Responda con sus datos: (1) ¿Qué porcentaje de lecturas fue clasificado y cuál quedó sin clasificar? (2) ¿El taxón con más lecturas corresponde al organismo esperado de la muestra? (3) ¿Qué otros taxones aparecen (por ejemplo, humano u otras bacterias) y con qué porcentaje? Tenga en cuenta que una lectura **no clasificada no es necesariamente un contaminante**: puede pertenecer a un organismo que no está en la base de datos, y la exactitud de las lecturas de Nanopore puede reducir la fracción que Kraken2 logra clasificar.
@@ -480,7 +766,15 @@ cat b14.report
 > - Localización de los archivos FASTQ:
 
 ```bash
-tree /data/2026_2/genomics/
+tree /data/2026_2/genomics/fastq
+
+/data/2026_2/genomics/fastq
+├── b13.fastq.gz
+├── b14.fastq.gz
+├── b15.fastq.gz
+├── b16.fastq.gz
+├── b17.fastq.gz
+└── b18.fastq.gz
 ```
 
 > - Mantener la siguiente estructura de carpetas:
