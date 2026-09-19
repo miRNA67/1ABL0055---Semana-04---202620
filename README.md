@@ -66,7 +66,7 @@ FastQC v0.12.1 http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
    - **Descripción:** FastQC es una herramienta de control de calidad para datos de secuenciación de alto rendimiento. Proporciona un informe detallado que ayuda a identificar posibles problemas en los datos brutos antes del análisis posterior.
 
 Kraken2 v2.1.3 https://github.com/DerrickWood/kraken2
-   - **Descripción:** Kraken2 es un clasificador taxonómico de secuencias basado en k-mers: compara cada lectura con una base de datos de genomas de referencia y le asigna un taxón. Aquí se usa para detectar contaminación en los FASTQ de Nanopore, con la base de datos PlusPF (arqueas, bacterias, virus, plásmidos, humano, protozoos y hongos). Verifique la versión instalada con `kraken2 --version`.
+   - **Descripción:** Kraken2 es un clasificador taxonómico de secuencias basado en k-mers: compara cada lectura con una base de datos de genomas de referencia y le asigna un taxón. Aquí se usa para detectar contaminación en los FASTQ de Nanopore, con la base de datos PlusPF (arqueas, bacterias, virus, plásmidos, humano, protozoos y hongos).
 
 Minimap2 v2.28 https://github.com/lh3/minimap2
    - **Descripción:** Minimap2 es un alineador de secuencias versátil y de alta velocidad diseñado para lecturas largas (Nanopore y PacBio). En esta práctica se usa para calcular los solapamientos entre lecturas (all-vs-all) que necesita YACRD.
@@ -135,7 +135,7 @@ Una vez dentro del servidor, crear **de una sola vez** todas las carpetas que se
 ```bash
 cd
 
-mkdir -p ~/genomics/{basecalling/pod5_db_sup,quality/{illumina,nanopore},trimming/{illumina/{trim_galore,trimmomatic},nanopore}}
+mkdir -p ~/genomics/{basecalling/pod5_db_sup,quality/{illumina,nanopore},trimming/{illumina/{trim_galore,trimmomatic},nanopore},contamination}
 
 tree ~/genomics
 ```
@@ -154,11 +154,11 @@ cd ~/genomics/quality/illumina
 
 conda activate quality
 
-fastqc -t 2 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz -o .
+fastqc -t 10 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz -o .
 ```
 
 > **Comentario:** 
-> - `-t 2`: Esta opción especifica el número de hilos (threads) que FastQC debe utilizar. FastQC procesa un archivo por hilo, por lo que con 2 hilos analiza R1 y R2 al mismo tiempo.
+> - `-t 10`: Esta opción especifica el número de hilos (threads) que FastQC debe utilizar. FastQC procesa un archivo por hilo, por lo que con 10 hilos analiza R1 y R2 al mismo tiempo.
 > - `/data/2025_1/database/illumina/CAT_R1.fastq.gz` y `.../CAT_R2.fastq.gz`: Rutas de los archivos que FastQC debe analizar (lecturas R1 y R2 del par).
 > - `-o .`: Esta opción define el directorio de salida. El punto "." representa el directorio actual. Esto significa que los informes HTML generados por FastQC se guardarán en el mismo directorio donde se ejecuta el comando.
 
@@ -178,7 +178,7 @@ multiqc -o raw_illumina .
 ```bash
 cd ~/genomics/trimming/illumina/trim_galore
 
-trim_galore --quality 30 --length 50 --phred33 --cores 2 --fastqc --paired --output_dir . /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz
+trim_galore --quality 30 --length 50 --phred33 --cores 2 --fastqc --paired --output_dir . /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz 2> trim_galore_CAT.log
 ```
 
 > **Comentario:**
@@ -207,7 +207,8 @@ cd ~/genomics/trimming/illumina/trimmomatic
 > **Comentario:** Crear el archivo de adaptadores NexteraPE.fa. Trimmomatic incluye este mismo archivo (`NexteraPE-PE.fa`) en su carpeta `adapters/`; aquí lo crearemos manualmente para ver cómo es su formato.
 
 ```bash
-cat > NexteraPE.fa << 'EOF'
+nano NexteraPE.fa
+
 >PrefixNX/1
 AGATGTGTATAAGAGACAG
 >PrefixNX/2
@@ -220,22 +221,19 @@ CTGTCTCTTATACACATCTGACGCTGCCGACGA
 GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG
 >Trans2_rc
 CTGTCTCTTATACACATCTCCGAGCCCACGAGAC
-EOF
 
 cat NexteraPE.fa
 ```
 
-> **Comentario:** También puede crear el archivo con `nano NexteraPE.fa`, pegar el contenido (sin las líneas `cat > ...` ni `EOF`), guardar con `Ctrl+O` y salir con `Ctrl+X`.
-
 ```bash
-trimmomatic PE -threads 2 -phred33 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz CAT_R1.trim.fastq.gz CAT_R1.unpaired.fastq.gz CAT_R2.trim.fastq.gz CAT_R2.unpaired.fastq.gz ILLUMINACLIP:NexteraPE.fa:2:30:10 SLIDINGWINDOW:4:30 MINLEN:50 2> trimmomatic_CAT.log
+trimmomatic PE -threads 10 -phred33 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz CAT_R1.trim.fastq.gz CAT_R1.unpaired.fastq.gz CAT_R2.trim.fastq.gz CAT_R2.unpaired.fastq.gz ILLUMINACLIP:NexteraPE.fa:2:30:10 SLIDINGWINDOW:4:30 MINLEN:50 2> trimmomatic_CAT.log
 
 cat trimmomatic_CAT.log
 ```
 
 > **Comentario:**
 > - `PE`: Indica que los datos son pareados (paired-end).
-> - `-threads 2`: Número de hilos. **Las opciones de Trimmomatic (`-threads`, `-phred33`) van antes de los archivos de entrada**; si se colocan al final, Trimmomatic las interpreta como un paso de limpieza y da error.
+> - `-threads 10`: Número de hilos. 
 > - `-phred33`: Indica la codificación de calidad de las bases.
 > - `/data/2025_1/database/illumina/CAT_R1.fastq.gz`: Esta es la ruta del archivo FASTQ comprimido que contiene las lecturas R1 (la primera lectura del par).
 > - `/data/2025_1/database/illumina/CAT_R2.fastq.gz`: Esta es la ruta del archivo FASTQ comprimido que contiene las lecturas R2 (la segunda lectura del par).
@@ -249,7 +247,7 @@ cat trimmomatic_CAT.log
 > - `2> trimmomatic_CAT.log`: Trimmomatic imprime su resumen (pares de entrada, pares que sobreviven, etc.) por la salida de error; se guarda en un archivo para poder usarlo en la bitácora y para que MultiQC lo lea.
 
 ```bash
-fastqc -t 2 *.trim.fastq.gz -o .
+fastqc -t 10 *.trim.fastq.gz -o .
 
 multiqc -o trimming_trimmomatic .
 ```
@@ -259,7 +257,7 @@ multiqc -o trimming_trimmomatic .
 ```bash
 cd ~/genomics/trimming/illumina
 
-seqkit stats -a -j 2 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz trim_galore/CAT_R1_val_1.fq.gz trim_galore/CAT_R2_val_2.fq.gz trimmomatic/CAT_R1.trim.fastq.gz trimmomatic/CAT_R2.trim.fastq.gz > stats_illumina.txt
+seqkit stats -a -j 10 /data/2025_1/database/illumina/CAT_R1.fastq.gz /data/2025_1/database/illumina/CAT_R2.fastq.gz trim_galore/CAT_R1_val_1.fq.gz trim_galore/CAT_R2_val_2.fq.gz trimmomatic/CAT_R1.trim.fastq.gz trimmomatic/CAT_R2.trim.fastq.gz > stats_illumina.txt
 
 cat stats_illumina.txt
 ```
@@ -283,24 +281,16 @@ ls /data/software/dorado-0.9.1-linux-x64/models
 > - `nvidia-smi`: muestra las GPU del servidor y la memoria en uso. Verifique que la GPU esté disponible antes de lanzar el basecalling, porque el servidor es compartido.
 > - `ls .../models`: lista los modelos de basecalling ya descargados en el servidor.
 
-> **Tip:** Si la conexión de PuTTY se corta, el proceso se detiene. Para tareas largas, ejecute el comando dentro de una sesión `tmux` (si está instalado): `tmux new -s basecalling`; para salir sin detener el proceso, `Ctrl+b` y luego `d`; para volver, `tmux attach -t basecalling`.
-
 #### Basecalling
 
 ```bash
 cd ~/genomics/basecalling/pod5_db_sup
 
-dorado basecaller sup \
-  --kit-name SQK-NBD114-24 \
-  --min-qscore 10 \
-  --device 'cuda:0' \
-  --barcode-both-ends \
-  --models-directory /data/software/dorado-0.9.1-linux-x64/models \
-  /data/2025_1/database/nanopore/pod5/barcode15.pod5 > b15_calls.bam
+dorado basecaller sup --kit-name SQK-NBD114-24 --min-qscore 10 --device "cuda:0" --barcode-both-ends --models-directory /data/software/dorado-0.9.1-linux-x64/models /data/2025_1/database/nanopore/pod5/ > wasp_calls.bam
 ```
 
 > **Comentario:** 
-> Al iniciar, Dorado imprime el nombre del modelo que está usando (por ejemplo, `dna_r10.4.1_e8.2_400bps_sup@v5.0.0`). **Anótelo**: debe reportarse en la Metodología de la bitácora.
+> Al iniciar, Dorado imprime el nombre del modelo que está usando (por ejemplo, `dna_r10.4.1_e8.2_400bps_sup@v5.0.0`). **Anótelo**: debe reportarse en la metodología de la bitácora.
 >
 > - `sup`: Esta opción indica que se debe utilizar el modelo de basecalling de "super precisión" (super accuracy). Estos modelos están entrenados para ofrecer una mayor exactitud en la llamada de bases, a costa de un mayor tiempo de cómputo. Dorado elige automáticamente el modelo `sup` que corresponde a los datos.
 > - `--kit-name SQK-NBD114-24`: Este parámetro especifica el nombre del kit de preparación de librería utilizado (Native Barcoding Kit 24 V14). Activa la **clasificación de barcodes** y le indica a Dorado qué adaptadores y barcodes buscar; por defecto Dorado también recorta los adaptadores, primers y barcodes que detecta (esto se desactiva con `--no-trim`). **No** sirve para elegir el modelo de basecalling.
@@ -315,52 +305,52 @@ dorado basecaller sup \
 #### Conversión de bam a fastq
 
 ```bash
-for file in *.bam; do prefix="${file%.bam}"; samtools sort -n "$file" -o "${prefix}_sorted.bam"; done
+dorado demux --output-dir demux_fastq --emit-fastq wasp_calls.bam
 
-for file in *_sorted.bam; do prefix="${file%.bam}"; bedtools bamtofastq -i "${prefix}.bam" -fq "${prefix}.fastq"; done
-
-seqkit stats -a -j 4 *_sorted.fastq > stats_sorted_fastq.txt
+seqkit stats -a -j 10 demux_fastq/*.fastq > stats_fastq.txt
 ```
 
 > **Comentario:** 
-> - `samtools sort -n`: Ordena los archivos BAM por nombre de lectura.
-> - `bedtools bamtofastq`: Convierte los archivos BAM ordenados a formato FASTQ.
 > - `seqkit stats`: Calcula las estadísticas de archivos FASTQ que han sido previamente ordenados (-a: todas las estadísticas y -j: número de hilos).
 >
-> **Alternativa más corta (opcional):** para lecturas largas no emparejadas no es necesario ordenar por nombre; se puede convertir directamente con `samtools fastq -@ 4 b15_calls.bam > b15.fastq`. Dorado también puede escribir FASTQ directamente si se agrega `--emit-fastq` al comando de basecalling (en ese caso no se genera el BAM).
 
 ```bash
-cat stats_sorted_fastq.txt
+cat stats_fastq.txt
 
-file                    format  type  num_seqs    sum_len  min_len  avg_len  max_len   Q1   Q2       Q3  sum_gap    N50  N50_num  Q20(%)  Q30(%)  AvgQual  GC(%)  sum_n
-b15_calls_sorted.fastq  FASTQ   DNA      8,056  9,351,266       26  1,160.8   26,983  555  814  1,298.5        0  1,423      721   89.24   80.11    19.24   45.7      0
-```
+file                                                                                format  type  num_seqs    sum_len  min_len  avg_len  max_len     Q1     Q2       Q3  sum_gap    N50  N50_num  Q20(%)  Q30(%)  AvgQual  GC(%)  sum_n
+demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_SQK-NBD114-24_barcode13.fastq  FASTQ   DNA          8      3,457      205    432.1      796  242.5    383    602.5        0    523        3   82.38   71.19    17.53  38.62      0
+demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_SQK-NBD114-24_barcode14.fastq  FASTQ   DNA      2,789  2,835,518       13  1,016.7   20,783    428    682    1,145        0  1,381      461   89.65   80.68    19.59  45.73      0
+demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_SQK-NBD114-24_barcode15.fastq  FASTQ   DNA          3      3,778    1,087  1,259.3    1,356  1,211  1,335  1,345.5        0  1,335        2      95   86.98    24.74  50.95      0
+demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_SQK-NBD114-24_barcode17.fastq  FASTQ   DNA          1        417      417      417      417    417    417      417        0    417        1   84.89   77.22    17.72  36.21      0
+demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_unclassified.fastq             FASTQ   DNA      1,227  1,526,649       26  1,244.2   26,983  592.5    864    1,394        0  1,581      245   90.52   81.78    20.14  45.71      0```
 
 > **Comentario:** En `seqkit stats`, `Q20(%)` y `Q30(%)` son el **porcentaje de bases** con calidad ≥ Q20 y ≥ Q30, y `AvgQual` es la calidad media por lectura. No confundir con el resumen de NanoPlot (sección 5), donde `>Q20` y `>Q30` son el **número (y %) de lecturas** cuya calidad media supera ese umbral.
 
 ```bash
-mv b15_calls_sorted.fastq b15.fastq
+mv demux_fastq/bcf4b7732185c1a3353d1b4fe80266cd3ac60162_SQK-NBD114-24_barcode14.fastq b14.fastq
 ```
 
 ```bash
-head b15.fastq
+head b14.fastq
 
-@0a3b5933-6ecd-4ab8-b6fe-323eeee7a012
-TAAGGTTAAAACGAGTCTCTTGGGACCCATAGACAGCACCTCAAGAGCCGTGTCTCCTGTCCTTAGTGTAATCAAGCTTTTGTTTATACTTGTCAATCAGCCGCTCGTTTTCTTTGAAAATTCTGGCGGTATGAGGGCTGACCTGGTAACTTGCGATACTTGTCATTGAACGTTTTTTAAACATTTTGAACAGTTTCGCTTCTTGTTTCCGGCTGCCCCGTTTTGAAATGCCTGCTCCATTTAACCGTCACCTTCCTCTTCTATTGGCAGCATTAAATCATAAATGCTCGTTAGCGATGTGAAAAGCAAATAATCGAATTCCGTCAACAGGTTTTCCGACGTGAGTTTGATCACGTAATGGCGGTTCTGGACTGTAAACGGAATAAGCACAAGCCTGCCTTTTTGATCATAGTAGACGTCTTTACGGTTAAGACGGGACTGAACGTCTGCCGCATCAGGCATATGCTCCGTCAAGCGGTCCTTATCCAATTGTGCGGAATAGTCAAGGAAGCCGTGACATTCATTTTTTCGGCATAAGCGGCCAGCAGTCTGCT
+@00394845-e64b-49a7-af5a-af1b5b008917   qs:f:28.6034    st:Z:2024-04-28T00:01:23.062+00:00      RG:Z:bcf4b7732185c1a3353d1b4fe80266cd3ac60162_dna_r10.4.1_e8.2_400bps_sup@v5.0.0
+TTCCCGATCGGCGGATGTTCAGGTATGTCATCTCCCGCAGAAATCGTATACGTTGAAACCACGTGGGTTTCTGACGGGCCGTAATGATTATGCAGCTGCATACCGTGTAAACGGAGCGTCTGTCTGAACAAACGTGAGATAGTCAGCTGCTCCCCGGCCGTAATGACATGCTTCACACAGCGGGGAAAAGACTGTGCATAACCTTCTTCATTGAAAAGCATCTTGACAAACGCAGTCGGGAAAAACACCACTTCCGTTTTGTGCTGATCGATAAACGAATACAGCTGAGAAACATCCCGTTTGATAGATTCGGGCACGATACAAAGGGTGCCGCCGCTCGAGAGTACTGAAAATAACTCCTGATAGCAGACGTCAAACGCCAAAGATGCGTACTGCAGCACATTTGTGCAAAAATCAATGTCTGTGTTCGTCAATTGGTCAGAAAGAAGGTTGGCCATATTTTTATGTTCGAGCAGCACGCCCCTTCGGTTTCCCTGTCGTACCGGATGTATAAATCATATAAAGGAGGTCGTCCGCCGTATTAATGGATTGCACG
 +
-EFDCDDFCEGFFGGKHJJPSE6666SLNSSSSJGGSRMPMJSSSSSSSSSSSSRSPSSNSLOKIIISSSRLS:4322/..:8=@CDSOSSSNSQSSSQSSMQNSSOSSSSSSNMRBSSSSSSOSNSSQSSNSNSSSSSSLSSQMKLISSSSSSSNQSSSLIQSSSSSSSSSQSSSSSSSSSSNSSSS////*,,,.B>>>=66:33K@22CBGSSSE@2+SSKSLNSSSSSSSMIINCBA@BSSSSSSSSSNQSSSSOSSSSRSSSMJSSSLSSMSSSSSSSSSSSSSSSSSPSSSSSSSLSSSSSSLOSSNSSSSSSSSOSSSSSKHSSSSSSSSSSLIOSSSMNSSMSSSSSSSMSSPSSSSSSOSSSSSSOSSSSSPSSSSLMOSDBBBBGDBBB@==QNPSSSSSSSSSSSSSSSSLSSSSNSSSSSSSSOSISJGNQSSJJLSOMLLJKKKOSSSSSSSQSSNSJQQKJEEFSSSSQPJJKKFHGFAA>=<?=?@3222***=BFGJKSSMMJHSLKE==GCBBCEHHISQKFEBA?==<<;643130)
-@0a3d8a47-5c4d-4d13-913c-3b6f598d1449
-TAAGGTTAAAACGAGTCTCTTGGGACCCATAGACAGCACCTTTTTTGTTTCATCGGAGCGCCGTTAGATTGGTTTTTATTTTTTCTGCTGCTCATTACGGGGCTTGCCAAAAAAATAAAGCATTGGCTGGAAGCAGCGGTGCGCTTTCGGGTGCTGCAAATCGTAAGCTTCGTATTTGTGATTTCACTCATCATTACGGTGGCTTCGCTTCGCTTGAGTGGATCGGATATCGGGTTTCGCTTGCGTATCATATTTCGACGCAGACAACAGCAAGCTGGATAAGAGACCATGTCATTGATTTCTGGATCAGCTTTCCGCTGTTTGCCGTGTGTGTGCTTGTGTTTTACTGGCTGATCACAAAGCATACAAAAAAATGGTGGTTTTACGCTTGGTGTAC
+JGDIG5DB@>CEEJHHNKKPIKOJLKKD;==;=;;999::BANJSRSLSSSNSSRSSOIGFGDSQSSMSSSSMOLIMSKJPSNSSOSLNSSKSSSSSMSSSSSSSSOSQSSSMSSSSSSSSRSOSSSSSOSSSQSSSSSSSLILHGEHGHGGGA;9<=>MISSSNSSNSSSSSOSSNSLSSNSSSSSSSSSSSLIPLNSNSSSSSSSSSSSSSSSSSSSSSNSSMSSKSSSNSSSSIJMSSSSSSSJMISSSSQSPSSSSPSSQMJISOGGGHFSSRSSSOSFFHIIJNSSSSQSOSSMKHHKPSSSSSSSSSSSPSSSSSSIDEGGSSKSFIGOHFED,++++4334<=>DFSMSSSNSSOSSOSSMSKHSSLSSSSOSSNSSSSSMSOSPSSSSIIJSSJINFAFGFNSSSSSSSSSLSSSRSRLLSMNNHJJKGIHNHSSSQNSSSSSSQSSSSSSSSSSSSSSJHJIRSSQSSSSRMSA8+J>>HMSSSSSFQSLIGISSQSSSKMJSNSQJKPILHHFEB9IQKSLMSLS==H@?LFEEFGHFGLMNSDA4
+@0cb29fbb-1cad-4984-b8dd-04a930a3f387   qs:f:23.3482    st:Z:2024-04-28T00:00:33.395+00:00      RG:Z:bcf4b7732185c1a3353d1b4fe80266cd3ac60162_dna_r10.4.1_e8.2_400bps_sup@v5.0.0
+CTTCCAGTCTCGCGAAGGCGGAAATGCTGTCTGCGTGCGTTTCAAATGCCTTCCGGCTGTAAGAGATGATGCTCGATTTCTTTTGAAAATCTGTTACATTCAACGGGCTTGAAAACCGCGCCGTTCCGTTTGTCGGCAAAACGTGATTCGGTCCGGCAAAATAATCGCCGACCGGTTCAGCGCTGTATCGTCCTAAGAAAATCGCTCCCGCGTGTCTGATGCTTCCAAGCAAAGCCTCCGGCGAATGCGTCATAATTTCTAAATGCTCGGGCGCCAGCGCATTCACCGTGTCCACCGCATCTTCCATCGATTCCGTAATATAAATGCGGCCGTGATCCTTGATCGACCCTTCGGCGATTTCTTTACGCGGCAGTGTCTGAAGCTGTTTATTCACCTCATCTGATACGGCTTCGGCAAGCTTCCGTGAGTCGGTGACAAGCACGCTTGAGCTGAGCGTATCGTGTTCGGCCTGTGAAAGCAGG
 +
-7OLSSMJJEEDE;:99>ED>AAABDISSJKIHFHMMNJIF@=666HG0+*):::;<CJJKLJOPIDDDDI>;:;;???@CIKSSSSSBC:=BB@@BDIIKSSOLNP:77788SSSSOSRNNKHGHHPMONKCARSMMSOOJKNA><<45555OONSSLNKLPOMORSQSSLCAD>@?)B@??@:*****))))))(()))43,,,++043-+,.33===,,+++?BBBPMJJSKSSSCA<3>AAAABHJ7656:=10000?CA@@@@KKLMPLSSSMIKGHECEGKKSHHID=<<::>>>IGGEEISJJJIJMSKMFFHHJJJNSSNMOSOSPSOQPSSSSSPMKSSSRSSSRPMSKK@@@@@RSNJ<4<5333634489::8988----,++++(&
-@0a3f050d-7fd8-4d74-a730-655bedec67ec
-AGGGCTTATTACTGATAAAAAAAGCAAAACGATTTATAAAATTGAGTCAAAACGGTCTTTGCAGCCGGGCATATACGCATTCAAGGTTTACAGACCTCTGAAGGGTACCCGGCCGACGAAGAAAAATTTGAGTGGTCAAAACCGATGAAACTCGTCAAATGCCGGGAACAGGCGACCGTTTCGAATATAAAACGGAGAAAGAGCCGGCTGAGCCGGTAAAAGAAAGCGGGGAAGAACATGAAAAAAACGCTGAAACTGATGAGTAATATTTTGTATGCCAGTCATCTTCAGCTTGATTATTGTGCTGGCGTTAACGGTGATTCAGACCCGGGCTTCCGGGGGTGAGCCGGCCATTTTCGGCTATACA
+=@GSSGMINSNSSLKKIEFFELNSSIOSSSSSSSNNSSSIGEAABABHSSMJSSSSSSQSPSSSSSSNSSSSSHJHQJJKOJJC9MOSFSCBBBCBABEJHHHHSSSSSSKMLKHGFCCDHJNLJLNMSSHSSLJMSSSSSSKI==<;>>>>?AEEGIILOD?<=<<FFHGGEEJBA>:;;<=HGGHFJFLIKSDFMEQSSSNORQSIKLJKSSSSSSMJPPJHNJ@:;;;HSRISSOGEFGOSSHLSSSNMH+++++?H?@@SSSSHHFDDLOPOJSSSIIIPJKSQSC==9/..**,,+,,,,,3M@@@@@SSSGGGISHKSGA@-,,,,2226CDFG>>?CDGFFKSSHHSQLKPSSSSSSNSOSQSSOMJLOHIFGGSJISSSSOSSJJISSJPLQHFCBCEDDFIFIHGFJMMHLLGCCCCFSSQGKHSNKSMKMFSIGGGNSSNKCBBCAJSSKSSSSSSSSSSSNNCBB@@@<75
+@0b941ebe-49bd-45ca-af16-9bbc5491a523   qs:f:29.7949    st:Z:2024-04-27T23:58:53.183+00:00      RG:Z:bcf4b7732185c1a3353d1b4fe80266cd3ac60162_dna_r10.4.1_e8.2_400bps_sup@v5.0.0
+CTAGTGATAGATACACCGTTTCTTGGTTCGTAGTAGCGGGCCATGAGATAGTACAGGCCGGTTTCTTCGTCGTATTGGTAGCCTGCGTAGCGGTAGCGGTTGTCTTTTACTTCGTCGCTTGCTTCGGTTTTTGTCGGATTTCCCCATGCATCGTACTGATATTTGGCAACGGTTTTTCCGGTGCTGTCTGAGATGGCGATGACGTCGCCGTGTGCGTTGTAGTGATAGAAATATTTCTTGCCGTTCTCTGTATAGGATAACAGCTGGCCGCTGTCACCGTACGTGTATGATTTTGTGACGTTGTTGTCGGCGTCTGTTTCATACAGGACGTTCAGGCTGTCTCCGTCGTAGAAGTAGTTCGTAACTTTTCCGTTGACGGTTTTTTGGATTCTGTTTCCTTTTTCATCGTATTTGTATGTTGCGAACGGCTTGTCTTCGCCTTTTTTCGTGACGGCGGTCAGGTTGTCTTCCGCGTCCCACGTATATGTGTATTTGCCGTCCGATGTGCGGTTGCCGTTTTTATCATAGGACAGGTCTTCGTCATTCACCTTCGTCAGCTGGTTCATGATGTTGAAGGATGCGTTGACTGATTTGCTTGCGCCGTCCTTTGTGGTGGTGACGTTTGTCCGGTTGCCGAAGCCGTCGTACGTATATTGAATGACGGTGCCGTCTTCATGAGTTTCTTTGACGAGCTGGTTGAGCTTGCCGTATTCGTACTGCACCTTTCCGCCCGCTGAGCTGTCGATGACCGTGCGGTTGCCGTTGGCGTCATATTCATAGCTTTCCCGGAAGATGCTGCCGCCGTTTTTCGTTCCGATATGAAGAGAGCTGACGAGATTCCGCTCATCATATGAAAAACTCGTGCCGACTTCATTGCCGCTGATGAATGTCTGGACATTGCCGTTTTCATCATAATCAAATGTATAGGCTGAAGTGCCGTCTTTCATTTCAATCATTTGATCAAGTTTGTTGTACGTAAAGCTGTTTGTTCCTTTTT
 ```
 
-> **Pregunta guía:** Observe el inicio de las dos primeras lecturas. ¿Qué secuencia (de unas 40 bases) se repite exactamente igual en ambas? Una secuencia idéntica al inicio de lecturas independientes no puede ser genómica: piense de dónde proviene. Volverá a esta pregunta en la sección 6.
-
 ```bash
-gzip b15.fastq
+ls -lh
+
+gzip b14.fastq
+
+ls -lh
 ```
 
 ## 5. Análisis de calidad de archivos FASTQ de Nanopore
@@ -370,44 +360,44 @@ gzip b15.fastq
 ```bash
 cd ~/genomics/quality/nanopore
 
-NanoPlot -t 2 --fastq ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz -p b15_sup_raw_ -o b15_sup_raw --maxlength 1000000 --only-report
+NanoPlot -t 10 --fastq ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz -p b14_sup_raw_ -o b14_sup_raw --maxlength 1000000 --only-report
 
-cat b15_sup_raw/b15_sup_raw_NanoStats.txt
+cat b14_sup_raw/b14_sup_raw_NanoStats.txt
 
 General summary:         
-Mean read length:              1,160.8
-Mean read quality:                18.9
-Median read length:              814.0
-Median read quality:              20.3
-Number of reads:               8,056.0
-Read length N50:               1,423.0
-STDEV read length:             1,257.0
-Total bases:               9,351,266.0
+Mean read length:              1,016.7
+Mean read quality:                19.7
+Median read length:              682.0
+Median read quality:              21.1
+Number of reads:               2,789.0
+Read length N50:               1,381.0
+STDEV read length:             1,206.3
+Total bases:               2,835,518.0
 Number, percentage and megabases of reads above quality cutoffs
->Q10:   8054 (100.0%) 9.4Mb
->Q15:   7484 (92.9%) 8.9Mb
->Q20:   4292 (53.3%) 5.4Mb
->Q25:   1024 (12.7%) 1.0Mb
->Q30:   162 (2.0%) 0.1Mb
+>Q10:   2788 (100.0%) 2.8Mb
+>Q15:   2655 (95.2%) 2.7Mb
+>Q20:   1731 (62.1%) 1.8Mb
+>Q25:   539 (19.3%) 0.4Mb
+>Q30:   147 (5.3%) 0.1Mb
 Top 5 highest mean basecall quality scores and their read lengths
-1:      43.1 (332)
-2:      43.1 (332)
-3:      41.9 (351)
-4:      41.9 (351)
-5:      41.3 (371)
+1:      48.5 (20)
+2:      47.4 (147)
+3:      46.7 (180)
+4:      46.4 (111)
+5:      45.3 (161)
 Top 5 longest reads and their mean basecall quality score
-1:      26983 (18.4)
-2:      26983 (18.4)
-3:      20990 (26.5)
-4:      20990 (26.5)
-5:      14663 (23.3)
+1:      20783 (26.5)
+2:      14487 (23.3)
+3:      13443 (15.4)
+4:      12216 (16.7)
+5:      9918 (16.9)
 ```
 
 > **Comentario:** 
-> - `-t 2`: Número de hilos que usará NanoPlot.
+> - `-t 10`: Número de hilos que usará NanoPlot.
 > - `--fastq ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz`: Indica la ruta del archivo FASTQ que contiene las lecturas de secuenciación de ONT que se van a analizar.
-> - `-p b15_sup_raw_`: Define el prefijo que se usará para los nombres de los archivos de salida. En este caso, todos los gráficos generados comenzarán con "b15_sup_raw_".
-> - `-o b15_sup_raw`: Especifica el directorio de salida donde se guardarán los gráficos. Si el directorio no existe, NanoPlot lo creará.
+> - `-p b14_sup_raw_`: Define el prefijo que se usará para los nombres de los archivos de salida. En este caso, todos los gráficos generados comenzarán con "b14_sup_raw_".
+> - `-o b14_sup_raw`: Especifica el directorio de salida donde se guardarán los gráficos. Si el directorio no existe, NanoPlot lo creará.
 > - `--maxlength 1000000`: Oculta las lecturas más largas que este valor (1 Mb). Esas lecturas **se excluyen** de los gráficos y de las estadísticas (no se truncan). Sirve para que unas pocas lecturas extremadamente largas no distorsionen la visualización.
 > - `--only-report`: Reduce los archivos de salida; el resumen queda en el reporte HTML y en el archivo `NanoStats.txt`.
 
@@ -416,7 +406,7 @@ Top 5 longest reads and their mean basecall quality score
 > - **Mean read quality** vs **Median read quality**: promedio y mediana de la calidad media de cada lectura.
 > - **>Q10, >Q15, >Q20...**: número, porcentaje y megabases de lecturas cuya calidad media supera ese umbral (es un conteo de *lecturas*, no de bases).
 
-> **Puntos de control:** Descargue `b15_sup_raw/b15_sup_raw_NanoPlot-report.html` con WinSCP y responda: (1) ¿Qué porcentaje de lecturas supera Q20? (2) ¿Es simétrica la distribución de longitudes? ¿Qué indican la media y la mediana? (3) ¿Por qué el Q30(%) de `seqkit stats` (80,11 %) es mucho mayor que el porcentaje de lecturas >Q30 de NanoPlot (2,0 %)?
+> **Puntos de control:** Descargue `b14_sup_raw/b14_sup_raw_NanoPlot-report.html` con WinSCP y responda: (1) ¿Qué porcentaje de lecturas supera Q20? (2) ¿Es simétrica la distribución de longitudes? ¿Qué indican la media y la mediana? (3) ¿Por qué el Q30(%) de `seqkit stats` (80,11 %) es mucho mayor que el porcentaje de lecturas >Q30 de NanoPlot (2,0 %)?
 
 ## 6. Limpieza de los archivos FASTQ de Nanopore
 
@@ -425,44 +415,42 @@ Top 5 longest reads and their mean basecall quality score
 ```bash
 cd ~/genomics/trimming/nanopore
 
-porechop -t 10 -i ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz -o b15_sup_porechop.fastq.gz > b15_porechop.log 2> b15_porechop.err
+porechop -t 10 -i ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz -o b14_sup_porechop.fastq.gz > b14_porechop.log 2> b14_porechop.err
 
-tail -n 25 b15_porechop.log
+cat b14_porechop.log
 ```
 
 > **Comentario:**
 > - `-t 10`: Número de hilos que usará Porechop.
-> - `-i ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz`: Esta opción indica la ruta del archivo FASTQ de entrada. Este es el archivo que contiene las lecturas de secuenciación de ONT que se van a procesar.
-> - `-o b15_sup_porechop.fastq.gz`: Esta opción especifica el nombre del archivo FASTQ de salida comprimido con gzip. Este archivo contendrá las lecturas después de que Porechop haya recortado los adaptadores de los extremos y dividido las lecturas que tenían un adaptador en su interior (quimeras). Los fragmentos resultantes menores a 1000 pb se descartan por defecto.
-> - `> b15_porechop.log 2> b15_porechop.err`: Guarda el resumen del proceso y los posibles errores en archivos separados. `tail` permite ver el resumen: cuántas lecturas tenían adaptadores recortados y cuántas fueron divididas.
-
-> **Pregunta guía:** Compare el inicio de las lecturas antes y después de Porechop (`zcat archivo.fastq.gz | head -n 2`). ¿Desapareció la secuencia repetida que observó en la sección 4? Dorado ya recorta adaptadores y barcodes por defecto: ¿por qué cree que aún quedaron restos en algunas lecturas?
+> - `-i ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz`: Esta opción indica la ruta del archivo FASTQ de entrada. Este es el archivo que contiene las lecturas de secuenciación de ONT que se van a procesar.
+> - `-o b14_sup_porechop.fastq.gz`: Esta opción especifica el nombre del archivo FASTQ de salida comprimido con gzip. Este archivo contendrá las lecturas después de que Porechop haya recortado los adaptadores de los extremos y dividido las lecturas que tenían un adaptador en su interior (quimeras). Los fragmentos resultantes menores a 1000 pb se descartan por defecto.
+> - `> b14_porechop.log 2> b14_porechop.err`: Guarda el resumen del proceso y los posibles errores en archivos separados. `tail` permite ver el resumen: cuántas lecturas tenían adaptadores recortados y cuántas fueron divididas.
 
 ### Eliminación de quimeras
 
 ```bash
 cd ~/genomics/trimming/nanopore
 
-minimap2 -x ava-ont -g 500 -t 10 b15_sup_porechop.fastq.gz b15_sup_porechop.fastq.gz > b15_overlap.paf
+minimap2 -x ava-ont -g 500 -t 10 b14_sup_porechop.fastq.gz b14_sup_porechop.fastq.gz > b14_overlap.paf
 
-yacrd -i b15_overlap.paf -o b15_report.yacrd -c 4 -n 0.4 scrubb -i b15_sup_porechop.fastq.gz -o b15_yacrd.fastq.gz
+yacrd -i b14_overlap.paf -o b14_report.yacrd -c 4 -n 0.4 scrubb -i b14_sup_porechop.fastq.gz -o b14_sup_yacrd.fastq.gz
 
-awk '{print $1}' b15_report.yacrd | sort | uniq -c
+awk '{print $1}' b14_report.yacrd | sort | uniq -c
 ```
 
 > **Comentario:** 
 > - `minimap2 -x ava-ont`: Utiliza el algoritmo Minimap2 con el preajuste (preset) para solapamientos de lecturas largas de Nanopore.
 > - `-g 500`: Establece la distancia máxima para el llenado de brechas (gaps) entre semillas en 500 bases. Es una configuración recomendada por los autores de YACRD para datos de Nanopore.
 > - `-t 10`: Indica que el servidor utilizará 10 hilos (CPUs) para procesar el alineamiento de forma paralela y rápida.
-> - `b15_sup_porechop.fastq.gz b15_sup_porechop.fastq.gz`: Realiza un mapeo de tipo "all-vs-all", comparando cada lectura contra todas las demás de la misma muestra para encontrar solapamientos consistentes.
-> - `> b15_overlap.paf`: Redirige los resultados al archivo "b15_overlap.paf" en formato PAF (Pairwise Alignment Format).
-> - `yacrd -i b15_overlap.paf`: Carga el archivo de solapamientos generado anteriormente como entrada para el detector de quimeras.
-> - `-o b15_report.yacrd`: Crea un archivo de reporte con la clasificación de cada lectura (Chimeric, NotCovered o NotBad).
+> - `b14_sup_porechop.fastq.gz b14_sup_porechop.fastq.gz`: Realiza un mapeo de tipo "all-vs-all", comparando cada lectura contra todas las demás de la misma muestra para encontrar solapamientos consistentes.
+> - `> b14_overlap.paf`: Redirige los resultados al archivo "b14_overlap.paf" en formato PAF (Pairwise Alignment Format).
+> - `yacrd -i b14_overlap.paf`: Carga el archivo de solapamientos generado anteriormente como entrada para el detector de quimeras.
+> - `-o b14_report.yacrd`: Crea un archivo de reporte con la clasificación de cada lectura (Chimeric, NotCovered o NotBad).
 > - `-c 4`: Define el umbral de cobertura mínima. Las regiones de una lectura con cobertura menor o igual a 4 lecturas de soporte se consideran "regiones malas".
 > - `-n 0.4`: Si más del 40% de la longitud de una lectura está formada por regiones malas, la lectura se marca como `NotCovered` y se elimina.
 > - `scrubb`: Modo de operación que limpia la secuencia. En lugar de borrar la lectura completa si es quimérica, yacrd la corta en los puntos de unión falsos y conserva las partes reales.
-> - `-i b15_sup_porechop.fastq.gz`: Indica el archivo FASTQ original que contiene las secuencias físicas que serán procesadas y cortadas.
-> - `-o b15_yacrd.fastq.gz`: Genera el archivo comprimido con las lecturas sin quimeras, que se filtrará por calidad y longitud en el paso siguiente.
+> - `-i b14_sup_porechop.fastq.gz`: Indica el archivo FASTQ original que contiene las secuencias físicas que serán procesadas y cortadas.
+> - `-o b14_sup_yacrd.fastq.gz`: Genera el archivo comprimido con las lecturas sin quimeras, que se filtrará por calidad y longitud en el paso siguiente.
 > - `awk '{print $1}' b15_report.yacrd | sort | uniq -c`: Cuenta cuántas lecturas fueron clasificadas como `Chimeric`, `NotCovered` o `NotBad`.
 
 > **Importante:** Los autores de YACRD recomiendan `-c 4 -n 0.4` para conjuntos de datos con cobertura mayor a **30x**. Si la cobertura es baja (por ejemplo, pocos megabases de datos frente al tamaño del genoma de la muestra), casi todas las regiones tendrán cobertura ≤ 4 y `scrubb` eliminará o fragmentará una gran parte de las lecturas. Revise el conteo del comando `awk` y el número de lecturas resultantes antes de continuar.
@@ -470,13 +458,13 @@ awk '{print $1}' b15_report.yacrd | sort | uniq -c
 ### Eliminación de lecturas considerando su calidad y longitud
 
 ```bash
-gunzip -c ~/genomics/trimming/nanopore/b15_yacrd.fastq.gz | NanoFilt -q 10 --length 1000 | gzip > b15_sup_nanofilt.fastq.gz
+gunzip -c ~/genomics/trimming/nanopore/b14_sup_yacrd.fastq.gz | NanoFilt -q 10 --length 1000 | gzip > b14_sup_nanofilt.fastq.gz
 ```
 
 > **Comentario:**
-> - `gunzip -c ~/genomics/trimming/nanopore/b15_yacrd.fastq.gz`: Descomprime el archivo "b15_yacrd.fastq.gz".
+> - `gunzip -c ~/genomics/trimming/nanopore/b14_sup_yacrd.fastq.gz`: Descomprime el archivo "b14_sup_yacrd.fastq.gz".
 > - `NanoFilt -q 10 --length 1000`: Filtra las lecturas descomprimidas utilizando NanoFilt, manteniendo solo aquellas que tengan un puntaje de calidad medio mínimo de 10 y una longitud mínima de 1000 bases. Recuerde que Dorado ya descartó las lecturas con Q medio menor a 10 (`--min-qscore 10`), por lo que en este dato el filtro de calidad casi no elimina lecturas: el efecto principal es el de la longitud.
-> - `gzip > b15_sup_nanofilt.fastq.gz`: Comprime las lecturas filtradas y las guarda en un nuevo archivo llamado "b15_sup_nanofilt.fastq.gz". Este es el **FASTQ final de la limpieza**, listo para ser utilizado en el ensamblaje de genomas.
+> - `gzip > b14_sup_nanofilt.fastq.gz`: Comprime las lecturas filtradas y las guarda en un nuevo archivo llamado "b14_sup_nanofilt.fastq.gz". Este es el **FASTQ final de la limpieza**, listo para ser utilizado en el ensamblaje de genomas.
 > - `|`: Este símbolo es una "tubería" (pipe) que conecta la salida de un comando a la entrada de otro.
 
 ### Estadísticas de cada etapa y porcentaje de lecturas perdidas
@@ -484,13 +472,15 @@ gunzip -c ~/genomics/trimming/nanopore/b15_yacrd.fastq.gz | NanoFilt -q 10 --len
 ```bash
 cd ~/genomics/trimming/nanopore
 
-seqkit stats -a -T -j 10 ~/genomics/basecalling/pod5_db_sup/b15.fastq.gz b15_sup_porechop.fastq.gz b15_yacrd.fastq.gz b15_sup_nanofilt.fastq.gz > b15_stats_fastq.tsv
+seqkit stats -a -T -j 10 ~/genomics/basecalling/pod5_db_sup/b14.fastq.gz b14_sup_porechop.fastq.gz b14_sup_yacrd.fastq.gz b14_sup_nanofilt.fastq.gz > b14_stats_fastq.tsv
 
-column -t -s $'\t' b15_stats_fastq.tsv | less -S
+cat b14_stats_fastq.tsv
 
-awk -F'\t' 'NR==2{n0=$4; b0=$5} NR>1{printf "%-40s lecturas=%-7d (pérdida: %6.2f%%)  bases=%-10d (pérdida: %6.2f%%)\n", $1, $4, 100*(n0-$4)/n0, $5, 100*(b0-$5)/b0}' b15_stats_fastq.tsv > b15_perdidas.txt
-
-cat b15_perdidas.txt
+file    format  type    num_seqs        sum_len min_len avg_len max_len Q1      Q2      Q3      sum_gap N50     N50_num Q20(%)  Q30(%)  AvgQual GC(%)   sum_n
+/home/alumno01/genomics/basecalling/pod5_db_sup/b14.fastq.gz    FASTQ   DNA     2789    2835518 13      1016.7  20783   428.0   682.0   1145.0  0       1381    461     89.65   80.68   19.59     45.73   0
+b14_sup_porechop.fastq.gz       FASTQ   DNA     2785    2832515 13      1017.1  20783   428.0   682.0   1145.0  0       1381    460     89.67   80.70   19.61   45.74   0
+b14_sup_yacrd.fastq.gz      FASTQ   DNA     1021    687351  13      673.2   6830    327.0   531.0   815.0   0       838     222     89.95   81.00   19.96   46.15   0
+b14_sup_nanofilt.fastq.gz       FASTQ   DNA     177     286274  1000    1617.4  6830    1124.0  1323.0  1767.0  0       1563    56      90.62   81.81   20.14   45.77   0
 ```
 
 > **Comentario:**
@@ -503,57 +493,39 @@ cat b15_perdidas.txt
 Antes de usar las lecturas limpias en un ensamblaje conviene verificar que provienen del organismo esperado. Kraken2 clasifica cada lectura contra una base de datos de referencia y permite detectar contaminación (por ejemplo, ADN humano, bacterias de laboratorio u otros organismos).
 
 ```bash
-cd ~/genomics/trimming/nanopore/
-
-conda activate quality
-
-seqkit rename -n b20_sup_nanofilt.fastq.gz -o b20_rename.fastq.gz
+cd ~/genomics/contamination
 
 conda activate shotgun
 
-kraken2 -db /data/db/kraken2/k2_pluspf/ --threads 30 --use-names b20_rename.fastq.gz --output b20.kraken --report b20.report
+kraken2 -db /data/db/kraken2/k2_pluspf/ --threads 30 --use-names ~/genomics/trimming/nanopore/b14_sup_nanofilt.fastq.gz --output b14.kraken --report b14.report
 ```
 
 > **Comentario:**
-> - `conda activate quality` / `conda activate shotgun`: cambia de entorno conda. SeqKit se ejecuta en el entorno `quality` y Kraken2 en el entorno `shotgun`.
-> - `seqkit rename -n b20_sup_nanofilt.fastq.gz -o b20_rename.fastq.gz`: asigna identificadores únicos a las lecturas que tengan nombres repetidos, para evitar errores o ambigüedades en el análisis posterior. Se parte del FASTQ final de la limpieza (`b20_sup_nanofilt.fastq.gz`).
+> - `conda activate shotgun`: cambia de entorno conda a `shotgun`.
 > - `-db /data/db/kraken2/k2_pluspf/`: ruta de la base de datos de Kraken2. La base **PlusPF** incluye arqueas, bacterias, virus, plásmidos, humano, protozoos y hongos; **no incluye plantas** ni la mayoría de animales, por lo que las lecturas de esos organismos pueden quedar sin clasificar.
 > - `--threads 30`: número de hilos de cómputo. El servidor es compartido, así que no aumente este valor.
 > - `--use-names`: muestra el nombre científico de cada taxón (y no solo su código de taxonomía) en los resultados.
-> - `b20_rename.fastq.gz`: archivo FASTQ de entrada con las lecturas que se van a clasificar.
-> - `--output b20.kraken`: archivo con la clasificación de **cada lectura** (clasificada `C` o no clasificada `U`, identificador de la lectura, taxón asignado y longitud).
-> - `--report b20.report`: reporte resumen por taxón (porcentaje de lecturas, número de lecturas, rango taxonómico, código de taxonomía y nombre).
+> - `b14_sup_nanofilt.fastq.gz`: archivo FASTQ de entrada con las lecturas que se van a clasificar.
+> - `--output b14.kraken`: archivo con la clasificación de **cada lectura** (clasificada `C` o no clasificada `U`, identificador de la lectura, taxón asignado y longitud).
+> - `--report b14.report`: reporte resumen por taxón (porcentaje de lecturas, número de lecturas, rango taxonómico, código de taxonomía y nombre).
 
-> **Nota:** En este ejemplo se usa el barcode 20 (`b20`); cambie `b20` por el código de su barcode. El comando puede tardar varios minutos, porque Kraken2 carga en memoria la base de datos (varias decenas de GB): no lo ejecute varias veces en paralelo.
+> **Nota:** El comando puede tardar varios minutos, porque Kraken2 carga en memoria la base de datos (varias decenas de GB): no lo ejecute varias veces en paralelo.
 
 ### Visualización de los resultados
 
 ```bash
-head -n 2 b20.report
-
-awk -F'\t' '$4=="S"' b20.report | sort -t$'\t' -k2,2nr | head -n 10 | cut -f1,2,6
-
-awk -F'\t' '$4=="G"' b20.report | sort -t$'\t' -k2,2nr | head -n 10 | cut -f1,2,6
-
-head -n 3 b20.kraken | cut -f1-4
+cat b14.report
 ```
-
-> **Comentario:**
-> - `head -n 2 b20.report`: si hay lecturas no clasificadas, la primera línea (rango `U`, *unclassified*) indica qué porcentaje y cuántas lecturas quedaron sin clasificar; la siguiente (rango `R`, *root*) corresponde a las lecturas clasificadas.
-> - Las columnas del reporte (separadas por tabulaciones) son: (1) % de lecturas del taxón y sus descendientes, (2) n.º de lecturas del taxón y sus descendientes, (3) n.º de lecturas asignadas directamente al taxón, (4) rango taxonómico, (5) código de taxonomía y (6) nombre.
-> - `awk -F'\t' '$4=="S"' ...`: selecciona las filas de rango **especie** (`S`); con `"G"` se seleccionan los **géneros**. `sort -t$'\t' -k2,2nr` las ordena por número de lecturas (de mayor a menor), `head -n 10` conserva las 10 primeras y `cut -f1,2,6` muestra el porcentaje, el número de lecturas y el nombre.
-> - `head -n 3 b20.kraken | cut -f1-4`: muestra la clasificación de las tres primeras lecturas.
 
 > **Punto de control:** Responda con sus datos: (1) ¿Qué porcentaje de lecturas fue clasificado y cuál quedó sin clasificar? (2) ¿El taxón con más lecturas corresponde al organismo esperado de la muestra? (3) ¿Qué otros taxones aparecen (por ejemplo, humano u otras bacterias) y con qué porcentaje? Tenga en cuenta que una lectura **no clasificada no es necesariamente un contaminante**: puede pertenecer a un organismo que no está en la base de datos, y la exactitud de las lecturas de Nanopore puede reducir la fracción que Kraken2 logra clasificar.
 
 ## 8. Análisis de calidad, limpieza y contaminación de los datos de secuenciación Nanopore generados en el curso
 
-> - La bitácora se centra **únicamente en los datos de Nanopore** (secciones 4 a 7). Los análisis de Illumina (secciones 2 y 3) forman parte de la práctica, pero no se incluyen en la bitácora.
-> - Realizar todo el proceso de basecalling, visualización de calidad, limpieza y análisis de contaminación del FASTQ de su respectivo barcode (secciones 4 a 7), cambiando `b15` y `b20` por el código de su barcode en los nombres de archivos.
+> - Realizar todo el proceso de basecalling, visualización de calidad, limpieza y análisis de contaminación del FASTQ de su respectivo barcode (secciones 4 a 7), cambiando `b14` por el código de su barcode en los nombres de archivos.
 > - Localización de los archivos FASTQ:
 
 ```bash
-tree /data/2026_1/genomics/
+tree /data/2026_2/genomics/
 ```
 
 > - Mantener la siguiente estructura de carpetas:
@@ -572,27 +544,9 @@ tree /data/2026_1/genomics/
     └── nanopore/         # Resultados de Porechop, YACRD, NanoFilt y Kraken2
 ```
 
-### Bitácora bioinformática:
-
-Debe incluir las siguientes secciones (solo con los datos de **Nanopore**):
-
-1. **Carátula** (usar la carátula del modelo de bitácora, con los 6 integrantes del grupo)
-2. **Título**
-3. **Objetivo de la práctica**
-4. **Metodología:** flujograma de los análisis realizados con los datos de Nanopore (basecalling, análisis de calidad, limpieza y contaminación)
-5. **Metodología:** estructura de las carpetas
-6. **Metodología:** versión de cada programa utilizado (`programa --version`), modelo de Dorado y base de datos de Kraken2 empleados
-7. **Resultados:** análisis de calidad de los datos crudos de Nanopore
-8. **Resultados:** estadísticas de los FASTQ en cada etapa de la limpieza (tabla generada con `seqkit stats`)
-9. **Resultados:** número total y porcentaje (%) de lecturas y de bases que se perdieron en el proceso de limpieza (archivo `b15_perdidas.txt`, adaptado a su barcode)
-10. **Resultados:** análisis de contaminación con Kraken2 (porcentaje de lecturas clasificadas y no clasificadas, tabla con los 10 taxones con más lecturas e interpretación)
-11. **Discusión:** responder las preguntas siguientes.
-
 ### Preguntas para la discusión:
 
 1. ¿Qué importancia tiene la limpieza de lecturas de Nanopore para los análisis posteriores (por ejemplo, el ensamblaje de genomas)?
 2. ¿Qué etapa de la limpieza eliminó más lecturas y más bases? ¿Es una pérdida esperable? Justifique con sus datos.
-3. Dorado ya recorta adaptadores y barcodes durante el basecalling. ¿Qué aportó Porechop en sus datos? ¿Qué desventajas tiene seguir usando una herramienta sin mantenimiento?
-4. ¿Qué factores hacen que YACRD funcione mal en datos con baja cobertura? ¿Cómo lo comprobó en sus resultados?
-5. Si aumentara el umbral de calidad de NanoFilt a `-q 12` o `-q 15`, o el de longitud a `--length 2000`, ¿cómo cambiaría el número de lecturas y de bases? Explique el compromiso entre calidad y cantidad de datos.
-6. ¿Qué organismos identificó Kraken2 en su FASTQ? ¿Corresponden al organismo esperado de la muestra? ¿Qué implican el porcentaje de lecturas no clasificadas y la presencia de posibles contaminantes para un ensamblaje posterior?
+3. Si aumentara el umbral de calidad de NanoFilt a `-q 12` o `-q 15`, o el de longitud a `--length 2000`, ¿cómo cambiaría el número de lecturas y de bases? Explique el compromiso entre calidad y cantidad de datos.
+4. ¿Qué organismos identificó Kraken2 en su FASTQ? ¿Que organismo seria el que corresponde a tu muestra? ¿Qué implican el porcentaje de lecturas no clasificadas y la presencia de posibles contaminantes para un ensamblaje posterior?
